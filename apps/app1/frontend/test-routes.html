@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Testing - Mas3ndi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2E507C;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .route-group {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            background-color: #fafafa;
+        }
+        .route-group h2 {
+            color: #48B4E3;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .route-link {
+            display: inline-block;
+            margin: 5px 10px 5px 0;
+            padding: 8px 16px;
+            background-color: #2E507C;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .route-link:hover {
+            background-color: #48B4E3;
+        }
+        .route-link.redirect {
+            background-color: #f39c12;
+        }
+        .route-link.redirect:hover {
+            background-color: #e67e22;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .note {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Route Testing - Mas3ndi Frontend</h1>
+        
+        <div class="status">
+            <strong>✅ Routes Fixed!</strong> All wallet and transaction topup routes have been corrected.
+        </div>
+
+        <div class="route-group">
+            <h2>💰 Wallet & Topup Routes</h2>
+            <a href="http://localhost:3001/wallet" class="route-link" target="_blank">
+                /wallet - Main Wallet Page
+            </a>
+            <a href="http://localhost:3001/wallet/topup" class="route-link" target="_blank">
+                /wallet/topup - Wallet Topup Page
+            </a>
+            <a href="http://localhost:3001/transactions/topup" class="route-link redirect" target="_blank">
+                /transactions/topup - Redirects to Wallet Topup
+            </a>
+        </div>
+
+        <div class="route-group">
+            <h2>📊 Transaction Routes</h2>
+            <a href="http://localhost:3001/transactions" class="route-link" target="_blank">
+                /transactions - Main Transactions Page
+            </a>
+        </div>
+
+        <div class="route-group">
+            <h2>🏠 Dashboard Routes</h2>
+            <a href="http://localhost:3001/dashboard" class="route-link" target="_blank">
+                /dashboard - Main Dashboard
+            </a>
+        </div>
+
+        <div class="route-group">
+            <h2>🔐 Authentication Routes</h2>
+            <a href="http://localhost:3001/login" class="route-link" target="_blank">
+                /login - Login Page
+            </a>
+            <a href="http://localhost:3001/register" class="route-link" target="_blank">
+                /register - Registration Page
+            </a>
+        </div>
+
+        <div class="note">
+            <strong>📝 Note:</strong> 
+            <ul>
+                <li>Orange buttons are redirect routes that automatically redirect to the correct page</li>
+                <li>Blue buttons are direct routes to the actual pages</li>
+                <li>All wallet topup functionality is now consolidated under <code>/wallet/topup</code></li>
+                <li>The <code>/transactions/topup</code> route now redirects to <code>/wallet/topup</code> for consistency</li>
+            </ul>
+        </div>
+
+        <div class="route-group">
+            <h2>🔧 What Was Fixed</h2>
+            <ul>
+                <li>✅ Created <code>/transactions/topup</code> redirect page</li>
+                <li>✅ Fixed dashboard "Top Up" button to point to <code>/wallet/topup</code></li>
+                <li>✅ Fixed wallet page "Top Up" button to point to <code>/wallet/topup</code></li>
+                <li>✅ Fixed wallet topup page back button to go to <code>/wallet</code></li>
+                <li>✅ Fixed wallet topup success redirect to go to <code>/wallet</code></li>
+                <li>✅ Fixed stats card "Top Up" action link to point to <code>/wallet/topup</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Add click tracking for testing
+        document.querySelectorAll('.route-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                console.log('Testing route:', this.href);
+                console.log('Route type:', this.classList.contains('redirect') ? 'Redirect' : 'Direct');
+            });
+        });
+
+        // Display current time
+        console.log('Route testing page loaded at:', new Date().toLocaleString());
+    </script>
+</body>
+</html>

@@ -1,0 +1,2251 @@
+"use client";
+
+import { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+
+// Define the documentation structure
+const docSections = [
+  {
+    id: 'getting-started',
+    title: 'Getting Started',
+    topics: [
+      { id: 'introduction', title: 'Introduction to Mas3ndi' },
+      { id: 'account-setup', title: 'Account Setup' },
+      { id: 'dashboard-overview', title: 'Dashboard Overview' }
+    ]
+  },
+  {
+    id: 'sms-gateway',
+    title: 'SMS Gateway',
+    topics: [
+      { id: 'sending-sms', title: 'Sending SMS Messages' },
+      { id: 'bulk-sms', title: 'Bulk SMS Messaging' },
+      { id: 'scheduled-sms', title: 'Scheduled SMS' },
+      { id: 'sender-id-registration', title: 'Sender ID Registration' },
+      { id: 'delivery-reports', title: 'Delivery Reports & Webhooks' }
+    ]
+  },
+  {
+    id: 'wallet-billing',
+    title: 'Wallet & Billing',
+    topics: [
+      { id: 'credit-system', title: 'Credit System Overview' },
+      { id: 'payment-methods', title: 'Payment Methods' },
+      { id: 'invoices', title: 'Invoices & Receipts' },
+      { id: 'pricing', title: 'Pricing Structure' }
+    ]
+  },
+  {
+    id: 'api-integration',
+    title: 'API Integration',
+    topics: [
+      { id: 'api-keys', title: 'API Key Management' },
+      { id: 'authentication', title: 'Authentication' },
+      { id: 'sms-api', title: 'SMS API Endpoints' },
+      { id: 'custom-routing', title: 'Custom API Routing' },
+      { id: 'webhooks', title: 'Webhooks & Callbacks' },
+      { id: 'error-handling', title: 'Error Handling' }
+    ]
+  },
+  {
+    id: 'sdk-libraries',
+    title: 'SDK & Libraries',
+    topics: [
+      { id: 'javascript-sdk', title: 'JavaScript SDK' },
+      { id: 'php-sdk', title: 'PHP SDK' },
+      { id: 'python-sdk', title: 'Python SDK' },
+      { id: 'java-sdk', title: 'Java SDK' }
+    ]
+  },
+  {
+    id: 'best-practices',
+    title: 'Best Practices',
+    topics: [
+      { id: 'message-optimization', title: 'Message Optimization' },
+      { id: 'security', title: 'Security Guidelines' },
+      { id: 'compliance', title: 'Compliance & Regulations' },
+      { id: 'testing', title: 'Testing & Sandbox' }
+    ]
+  }
+];
+
+// Code examples
+const codeExamples = {
+  javascript: `// Send SMS using JavaScript
+const sendSMS = async () => {
+  try {
+    const response = await fetch('https://api.mas3ndi.com/v1/sms/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_API_KEY'
+      },
+      body: JSON.stringify({
+        sender: "Mas3ndi",
+        message: "Hello world! This is a test message.",
+        recipients: ["233201234567", "233207654321"]
+      })
+    });
+    
+    const data = await response.json();
+    console.log(data);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
+
+sendSMS();`,
+  php: `<?php
+// Send SMS using PHP
+$url = "https://api.mas3ndi.com/v1/sms/send";
+$data = array(
+    "sender" => "Mas3ndi",
+    "message" => "Hello world! This is a test message.",
+    "recipients" => array("233201234567", "233207654321")
+);
+
+$curl = curl_init();
+curl_setopt_array($curl, array(
+    CURLOPT_URL => $url,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => "",
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => "POST",
+    CURLOPT_POSTFIELDS => json_encode($data),
+    CURLOPT_HTTPHEADER => array(
+        "Content-Type: application/json",
+        "Authorization: Bearer YOUR_API_KEY"
+    ),
+));
+
+$response = curl_exec($curl);
+curl_close($curl);
+echo $response;
+?>`,
+  python: `# Send SMS using Python
+import requests
+import json
+
+url = "https://api.mas3ndi.com/v1/sms/send"
+
+payload = json.dumps({
+    "sender": "Mas3ndi",
+    "message": "Hello world! This is a test message.",
+    "recipients": ["233201234567", "233207654321"]
+})
+
+headers = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY'
+}
+
+response = requests.request("POST", url, headers=headers, data=payload)
+
+print(response.text)`
+};
+
+export default function Documentation() {
+  const [activeSection, setActiveSection] = useState('getting-started');
+  const [activeTopic, setActiveTopic] = useState('introduction');
+  
+  // Helper function to determine if a section is active
+  const isSectionActive = (sectionId: string) => {
+    return activeSection === sectionId;
+  };
+  
+  // Helper function to determine if a topic is active
+  const isTopicActive = (topicId: string) => {
+    return activeTopic === topicId;
+  };
+  
+  return (
+    <>
+      <Navbar />
+      <main className="pt-20 pb-16">
+        {/* Hero Section */}
+        <div className="bg-primary-700 text-white py-16">
+          <div className="container-custom">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Documentation</h1>
+            <p className="text-xl opacity-90 max-w-2xl">
+              Comprehensive guides to help you get the most out of Mas3ndi's SMS platform.
+            </p>
+          </div>
+        </div>
+        
+        {/* Documentation Content */}
+        <div className="container-custom py-12">
+          <div className="flex flex-col lg:flex-row gap-10">
+            {/* Sidebar Navigation */}
+            <div className="lg:w-1/4 order-2 lg:order-1">
+              <div className="sticky top-24 bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+                <div className="p-4 bg-gray-50 border-b border-gray-100">
+                  <h3 className="font-bold text-gray-800">Documentation</h3>
+                </div>
+                <nav className="p-4">
+                  <ul className="space-y-6">
+                    {docSections.map(section => (
+                      <li key={section.id}>
+                        <button
+                          onClick={() => {
+                            setActiveSection(section.id);
+                            setActiveTopic(section.topics[0].id);
+                          }}
+                          className={`font-medium text-left w-full ${
+                            isSectionActive(section.id) ? 'text-primary-600' : 'text-gray-700 hover:text-primary-600'
+                          }`}
+                        >
+                          {section.title}
+                        </button>
+                        {isSectionActive(section.id) && (
+                          <ul className="mt-2 ml-4 space-y-2">
+                            {section.topics.map(topic => (
+                              <li key={topic.id}>
+                                <button
+                                  onClick={() => setActiveTopic(topic.id)}
+                                  className={`text-sm ${
+                                    isTopicActive(topic.id)
+                                      ? 'text-primary-600 font-medium'
+                                      : 'text-gray-600 hover:text-primary-600'
+                                  }`}
+                                >
+                                  {topic.title}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              </div>
+            </div>
+            
+            {/* Main Content */}
+            <div className="lg:w-3/4 order-1 lg:order-2">
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 md:p-10">
+                {/* Content will change based on active section and topic */}
+                <div className="prose max-w-none">
+                  {activeSection === 'getting-started' && activeTopic === 'introduction' && (
+                    <>
+                      <h2>Introduction to Mas3ndi</h2>
+                      <p>
+                        Mas3ndi is a powerful Bulk SMS Reseller Platform that acts as middleware between clients and an upstream SMS provider (Arkesel). Our platform enables businesses to send SMS messages, manage sender IDs, and track message delivery through an intuitive dashboard or API.
+                      </p>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg border border-gray-100 my-6">
+                        <h3 className="text-lg font-semibold mb-2">What is Mas3ndi?</h3>
+                        <p className="mb-4">
+                          Mas3ndi (pronounced <em>mah-sen-di</em>) is a comprehensive SMS gateway solution that simplifies the process of sending bulk SMS messages. It provides a layer of abstraction over the underlying SMS infrastructure, allowing you to focus on your messaging needs without worrying about the technical complexities.
+                        </p>
+                        <div className="flex flex-col md:flex-row gap-4 items-center">
+                          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                            <div className="text-primary-600 font-bold text-xl mb-1">For Businesses</div>
+                            <p className="text-gray-700">Send transactional and marketing SMS messages to your customers directly.</p>
+                          </div>
+                          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                            <div className="text-primary-600 font-bold text-xl mb-1">For Resellers</div>
+                            <p className="text-gray-700">Create and manage multiple client accounts with custom pricing.</p>
+                          </div>
+                          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                            <div className="text-primary-600 font-bold text-xl mb-1">For Developers</div>
+                            <p className="text-gray-700">Integrate SMS capabilities into your applications using our RESTful API.</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <h3>Key Features</h3>
+                      <div className="grid md:grid-cols-2 gap-4 my-4">
+                        <div className="flex items-start">
+                          <div className="bg-primary-100 p-2 rounded-full mr-3">
+                            <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium">User Authentication</h4>
+                            <p className="text-gray-600">Secure admin & client roles with multi-factor authentication</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <div className="bg-primary-100 p-2 rounded-full mr-3">
+                            <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium">API Key Management</h4>
+                            <p className="text-gray-600">Generate and manage multiple API keys with granular permissions</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <div className="bg-primary-100 p-2 rounded-full mr-3">
+                            <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium">SMS Routing</h4>
+                            <p className="text-gray-600">Intelligent routing to upstream provider with fallback options</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <div className="bg-primary-100 p-2 rounded-full mr-3">
+                            <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium">Wallet-Based Credit System</h4>
+                            <p className="text-gray-600">Prepaid credit system with automatic low balance alerts</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <div className="bg-primary-100 p-2 rounded-full mr-3">
+                            <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium">Sender ID Management</h4>
+                            <p className="text-gray-600">Register and verify custom sender IDs for your messages</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <div className="bg-primary-100 p-2 rounded-full mr-3">
+                            <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium">Custom API Mappings</h4>
+                            <p className="text-gray-600">Create custom API endpoints that map to your business logic</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <div className="bg-primary-100 p-2 rounded-full mr-3">
+                            <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium">Analytics & Reporting</h4>
+                            <p className="text-gray-600">Comprehensive reporting on message delivery and usage</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <div className="bg-primary-100 p-2 rounded-full mr-3">
+                            <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium">Webhooks & Callbacks</h4>
+                            <p className="text-gray-600">Real-time delivery reports via webhooks to your systems</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-primary-50 p-6 rounded-lg border border-primary-100 my-6">
+                        <h3 className="text-lg font-semibold text-primary-700 mb-2">How Mas3ndi Works</h3>
+                        <div className="relative">
+                          <div className="flex flex-col md:flex-row justify-between items-center my-8 relative z-10">
+                            <div className="bg-white p-4 rounded-lg shadow-md border border-primary-100 md:w-1/4 text-center mb-4 md:mb-0">
+                              <div className="bg-primary-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span className="text-primary-700 font-bold">1</span>
+                              </div>
+                              <h4 className="font-medium mb-1">Client Request</h4>
+                              <p className="text-sm text-gray-600">Your application sends an SMS request to Mas3ndi API</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-lg shadow-md border border-primary-100 md:w-1/4 text-center mb-4 md:mb-0">
+                              <div className="bg-primary-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span className="text-primary-700 font-bold">2</span>
+                              </div>
+                              <h4 className="font-medium mb-1">Mas3ndi Processing</h4>
+                              <p className="text-sm text-gray-600">We validate, process, and optimize your message</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-lg shadow-md border border-primary-100 md:w-1/4 text-center mb-4 md:mb-0">
+                              <div className="bg-primary-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span className="text-primary-700 font-bold">3</span>
+                              </div>
+                              <h4 className="font-medium mb-1">Upstream Routing</h4>
+                              <p className="text-sm text-gray-600">We route to Arkesel (our SMS provider)</p>
+                            </div>
+                            <div className="bg-white p-4 rounded-lg shadow-md border border-primary-100 md:w-1/4 text-center">
+                              <div className="bg-primary-100 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <span className="text-primary-700 font-bold">4</span>
+                              </div>
+                              <h4 className="font-medium mb-1">Delivery & Reporting</h4>
+                              <p className="text-sm text-gray-600">Message is delivered and status reported back</p>
+                            </div>
+                          </div>
+                          <div className="absolute top-1/2 left-0 right-0 h-1 bg-primary-100 z-0 hidden md:block" style={{ transform: 'translateY(-50%)' }}></div>
+                        </div>
+                      </div>
+                      
+                      <p className="text-lg">
+                        Whether you're a business looking to send SMS messages directly or a reseller wanting to offer SMS services to your customers, Mas3ndi provides the infrastructure and tools you need to succeed. Our platform is designed to be flexible, reliable, and easy to use, with competitive pricing and excellent support.
+                      </p>
+                    </>
+                  )}
+                  
+                  {activeSection === 'getting-started' && activeTopic === 'account-setup' && (
+                    <>
+                      <h2>Account Setup</h2>
+                      <p className="text-lg mb-4">
+                        Setting up your Mas3ndi account is a straightforward process that takes just a few minutes to complete.
+                      </p>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg my-6">
+                        <h3 className="text-xl font-semibold mb-4">Registration Process</h3>
+                        
+                        <div className="grid gap-6 mb-6">
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">1</div>
+                              <h4 className="text-lg font-medium">Create Your Account</h4>
+                            </div>
+                            <p className="ml-11">Visit our <Link href="/register" className="text-primary-600 hover:underline font-medium">registration page</Link> and fill out the form with your details:</p>
+                            <div className="ml-11 mt-3 grid md:grid-cols-2 gap-4">
+                              <div className="bg-gray-50 p-3 rounded border border-gray-100">
+                                <div className="font-medium mb-1">Basic Information</div>
+                                <ul className="text-sm text-gray-600 space-y-1">
+                                  <li>• Full Name</li>
+                                  <li>• Email Address</li>
+                                  <li>• Phone Number</li>
+                                  <li>• Secure Password</li>
+                                </ul>
+                              </div>
+                              <div className="bg-gray-50 p-3 rounded border border-gray-100">
+                                <div className="font-medium mb-1">Business Details</div>
+                                <ul className="text-sm text-gray-600 space-y-1">
+                                  <li>• Company Name</li>
+                                  <li>• Business Type</li>
+                                  <li>• Country</li>
+                                  <li>• Industry</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">2</div>
+                              <h4 className="text-lg font-medium">Verify Your Email</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">We'll send a verification link to your email address. Click the link to verify your account.</p>
+                              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 text-sm">
+                                <div className="font-medium text-blue-700">Tip</div>
+                                <p>If you don't see the verification email, check your spam folder or request a new verification email from the login page.</p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">3</div>
+                              <h4 className="text-lg font-medium">Complete Your Profile</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>After verification, log in and complete your profile with additional information:</p>
+                              <ul className="mt-2 space-y-2 text-gray-700">
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  <span><span className="font-medium">Business Address:</span> Add your complete business address for invoicing and compliance.</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  <span><span className="font-medium">Contact Person:</span> For business accounts, add details of the primary contact person.</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  <span><span className="font-medium">Tax Information:</span> Add your tax ID if applicable for proper invoicing.</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  <span><span className="font-medium">Notification Preferences:</span> Choose how you want to receive alerts and notifications.</span>
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">4</div>
+                              <h4 className="text-lg font-medium">Fund Your Wallet</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>Add funds to your wallet to start sending SMS messages:</p>
+                              <div className="grid md:grid-cols-3 gap-3 mt-3">
+                                <div className="border border-gray-200 rounded p-3 text-center">
+                                  <div className="font-medium mb-1">Mobile Money</div>
+                                  <p className="text-sm text-gray-600">MTN, Vodafone, AirtelTigo</p>
+                                </div>
+                                <div className="border border-gray-200 rounded p-3 text-center">
+                                  <div className="font-medium mb-1">Bank Transfer</div>
+                                  <p className="text-sm text-gray-600">Direct bank deposits</p>
+                                </div>
+                                <div className="border border-gray-200 rounded p-3 text-center">
+                                  <div className="font-medium mb-1">Credit Card</div>
+                                  <p className="text-sm text-gray-600">Visa, Mastercard</p>
+                                </div>
+                              </div>
+                              <div className="mt-3 text-sm text-gray-700">
+                                See our <Link href="/documentation?section=wallet-billing&topic=payment-methods" className="text-primary-600 hover:underline">Payment Methods</Link> documentation for detailed payment instructions.
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">5</div>
+                              <h4 className="text-lg font-medium">Register Sender IDs</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>Register and verify Sender IDs to use as the sender name for your SMS messages:</p>
+                              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 text-sm mt-3">
+                                <div className="font-medium text-yellow-800">Important</div>
+                                <p>Sender IDs in Ghana require approval from the National Communications Authority (NCA). The verification process typically takes 1-3 business days.</p>
+                              </div>
+                              <p className="mt-3">Learn more about <Link href="/documentation?section=sms-gateway&topic=sender-ids" className="text-primary-600 hover:underline">Sender ID Registration</Link>.</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-green-50 p-4 rounded-lg border border-green-100 mt-8">
+                          <div className="flex">
+                            <div className="flex-shrink-0">
+                              <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div className="ml-3">
+                              <h3 className="text-green-800 font-medium">Ready to Send</h3>
+                              <p className="text-green-700 text-sm mt-1">
+                                Once your account is set up and funded, you can start sending SMS messages immediately through our web dashboard or API. Congratulations, you're now part of the Mas3ndi family!
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mt-8 mb-4">Account Types</h3>
+                      <div className="grid md:grid-cols-3 gap-6 mb-6">
+                        <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                          <div className="text-lg font-semibold text-primary-700 mb-2">Standard</div>
+                          <p className="text-gray-600 mb-4">Perfect for individuals and small businesses sending direct messages.</p>
+                          <ul className="space-y-2">
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Access to all basic features</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Up to 5 Sender IDs</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Standard rate pricing</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Email support</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <div className="bg-white p-5 rounded-lg border border-primary-200 shadow-sm relative">
+                          <div className="absolute top-0 right-0 bg-primary-500 text-white text-xs font-bold py-1 px-3 rounded-bl-lg rounded-tr-lg">POPULAR</div>
+                          <div className="text-lg font-semibold text-primary-700 mb-2">Business</div>
+                          <p className="text-gray-600 mb-4">Designed for medium to large businesses with higher volume needs.</p>
+                          <ul className="space-y-2">
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>All Standard features</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Up to 20 Sender IDs</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Volume discounts</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Priority email & phone support</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                          <div className="text-lg font-semibold text-primary-700 mb-2">Reseller</div>
+                          <p className="text-gray-600 mb-4">For agencies and companies reselling SMS services to clients.</p>
+                          <ul className="space-y-2">
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>All Business features</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Unlimited Sender IDs</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Client sub-accounts</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Custom pricing for clients</span>
+                            </li>
+                            <li className="flex items-start">
+                              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Dedicated account manager</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-8 border-t border-gray-200 pt-6">
+                        <h3 className="text-xl font-semibold mb-4">Need Help Getting Started?</h3>
+                        <p>
+                          Our support team is available to help you set up your account and answer any questions you may have. Contact us via:
+                        </p>
+                        <div className="grid md:grid-cols-3 gap-4 mt-4">
+                          <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                            <svg className="w-6 h-6 text-primary-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <div>
+                              <div className="font-medium">Email Support</div>
+                              <a href="mailto:support@mas3ndi.com" className="text-primary-600 hover:underline text-sm">support@mas3ndi.com</a>
+                            </div>
+                          </div>
+                          <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                            <svg className="w-6 h-6 text-primary-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            <div>
+                              <div className="font-medium">Phone Support</div>
+                              <a href="tel:+233200000000" className="text-primary-600 hover:underline text-sm">+233 20 000 0000</a>
+                            </div>
+                          </div>
+                          <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                            <svg className="w-6 h-6 text-primary-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            <div>
+                              <div className="font-medium">Live Chat</div>
+                              <span className="text-sm text-gray-600">Available 9am-5pm GMT</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </>  
+                  )}
+                  
+                  {activeSection === 'sms-gateway' && activeTopic === 'sending-sms' && (
+                    <>
+                      <h2>Sending SMS Messages</h2>
+                      <p className="text-lg mb-4">
+                        Mas3ndi provides multiple ways to send SMS messages, both through our web dashboard and API. This guide will walk you through the process step-by-step.
+                      </p>
+                      
+                      <div className="bg-primary-50 p-5 rounded-lg border border-primary-100 mb-8">
+                        <h3 className="text-lg font-semibold text-primary-700 mb-2">Quick Reference</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-1">Dashboard Method</div>
+                            <p className="text-sm text-gray-600">Best for: Small batches, one-time sends, testing</p>
+                          </div>
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-1">API Method</div>
+                            <p className="text-sm text-gray-600">Best for: Integration with your systems, automation, high volume</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Sending SMS via Dashboard</h3>
+                      <p className="mb-6">
+                        Our web dashboard provides a user-friendly interface for sending SMS messages without any coding required.
+                      </p>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <h4 className="text-lg font-medium mb-4">Step-by-Step Guide</h4>
+                        
+                        <div className="space-y-4">
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">1</div>
+                              <h4 className="font-medium">Access the Dashboard</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>Log in to your Mas3ndi account and navigate to the <Link href="/dashboard" className="text-primary-600 hover:underline font-medium">Dashboard</Link>.</p>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">2</div>
+                              <h4 className="font-medium">Compose Your Message</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">Click on the "Send SMS" button to open the message composer.</p>
+                              <ul className="space-y-2">
+                                <li className="flex items-start">
+                                  <span className="inline-block w-5 h-5 bg-primary-100 rounded-full text-primary-700 font-semibold text-xs flex items-center justify-center mr-2 mt-0.5">a</span>
+                                  <span><span className="font-medium">Sender ID:</span> Select from your approved sender IDs</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <span className="inline-block w-5 h-5 bg-primary-100 rounded-full text-primary-700 font-semibold text-xs flex items-center justify-center mr-2 mt-0.5">b</span>
+                                  <span><span className="font-medium">Recipients:</span> Enter phone numbers with country code (e.g., 233xxxxxxxxx). For multiple recipients, separate with commas or upload a CSV file</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <span className="inline-block w-5 h-5 bg-primary-100 rounded-full text-primary-700 font-semibold text-xs flex items-center justify-center mr-2 mt-0.5">c</span>
+                                  <span><span className="font-medium">Message:</span> Type your message (up to 160 characters for a single SMS)</span>
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">3</div>
+                              <h4 className="font-medium">Review and Send</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">Before sending, you'll see:</p>
+                              <ul className="space-y-2">
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>Number of SMS units required</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>Total recipients count</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>Estimated cost</span>
+                                </li>
+                              </ul>
+                              <div className="mt-3">
+                                <p>Click the "Send Now" button to send immediately, or schedule for later delivery.</p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">4</div>
+                              <h4 className="font-medium">Track Delivery</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>Monitor the delivery status of your messages in the "Reports" section of your dashboard.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Sending SMS via API</h3>
+                      <p className="mb-4">
+                        For developers and businesses that need to integrate SMS capabilities into their applications, our robust API provides a programmatic way to send messages.
+                      </p>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <h4 className="text-lg font-medium mb-4">API Endpoint</h4>
+                        <div className="bg-gray-800 text-white p-3 rounded font-mono text-sm mb-4 overflow-x-auto">
+                          POST https://api.mas3ndi.com/v1/sms/send
+                        </div>
+                        
+                        <h4 className="text-lg font-medium mb-2 mt-6">Request Headers</h4>
+                        <div className="bg-white p-3 rounded border border-gray-200 mb-6 overflow-x-auto">
+                          <pre className="font-mono text-sm">
+{`Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY`}
+                          `}</pre>
+                        </div>
+                        
+                        <h4 className="text-lg font-medium mb-2">Request Body</h4>
+                        <div className="bg-white p-3 rounded border border-gray-200 mb-4 overflow-x-auto">
+                          <pre className="font-mono text-sm">
+{`{
+  "sender": "Mas3ndi",
+  "message": "Hello world! This is a test message.",
+  "recipients": ["233201234567", "233207654321"]
+}`}
+                          `}</pre>
+                        </div>
+                        
+                        <div className="grid md:grid-cols-2 gap-6 mt-6">
+                          <div>
+                            <h4 className="text-lg font-medium mb-2">Parameters</h4>
+                            <table className="w-full text-sm">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="text-left p-2 border border-gray-200">Parameter</th>
+                                  <th className="text-left p-2 border border-gray-200">Description</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">sender</td>
+                                  <td className="p-2 border border-gray-200">Your approved sender ID</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">message</td>
+                                  <td className="p-2 border border-gray-200">Content of the SMS message</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">recipients</td>
+                                  <td className="p-2 border border-gray-200">Array of phone numbers with country code</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                          
+                          <div>
+                            <h4 className="text-lg font-medium mb-2">Response</h4>
+                            <div className="bg-white p-3 rounded border border-gray-200 overflow-x-auto">
+                              <pre className="font-mono text-sm">
+{`{
+  "status": "success",
+  "code": 200,
+  "message": "Messages sent successfully",
+  "data": {
+    "message_id": "SMS-123456789",
+    "sent_count": 2,
+    "invalid_numbers": [],
+    "units_used": 2,
+    "remaining_balance": 498
+  }
+}`}
+                              `}</pre>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <h4 className="text-lg font-medium mb-4">Code Examples</h4>
+                        
+                        <div className="mb-4">
+                          <div className="flex border-b border-gray-200">
+                            <button className="px-4 py-2 border-b-2 border-primary-500 font-medium text-primary-600">JavaScript</button>
+                            <button className="px-4 py-2 text-gray-600 hover:text-gray-800">PHP</button>
+                            <button className="px-4 py-2 text-gray-600 hover:text-gray-800">Python</button>
+                          </div>
+                          
+                          <div className="bg-gray-800 p-4 rounded-b overflow-x-auto">
+                            <pre className="text-gray-100 font-mono text-sm">{codeExamples.javascript}`}</pre>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-yellow-800 font-medium">Important Notes</h3>
+                            <div className="mt-2 text-yellow-700 text-sm">
+                              <ul className="list-disc pl-5 space-y-1">
+                                <li>Messages longer than 160 characters will be automatically split into multiple SMS units</li>
+                                <li>Each recipient in the array counts as a separate message</li>
+                                <li>Your account must have sufficient credits to send messages</li>
+                                <li>Phone numbers should be in international format with country code (e.g., 233xxxxxxxxx for Ghana)</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6">
+                        <h3 className="text-xl font-semibold mb-4">Message Character Limits</h3>
+                        <p className="mb-4">SMS messages have character limits that affect billing. Here's how it works:</p>
+                        
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="text-left p-2 border border-gray-200">Character Count</th>
+                                <th className="text-left p-2 border border-gray-200">SMS Units</th>
+                                <th className="text-left p-2 border border-gray-200">Notes</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td className="p-2 border border-gray-200">1-160</td>
+                                <td className="p-2 border border-gray-200">1</td>
+                                <td className="p-2 border border-gray-200">Standard SMS</td>
+                              </tr>
+                              <tr>
+                                <td className="p-2 border border-gray-200">161-306</td>
+                                <td className="p-2 border border-gray-200">2</td>
+                                <td className="p-2 border border-gray-200">Message is split into 2 parts</td>
+                              </tr>
+                              <tr>
+                                <td className="p-2 border border-gray-200">307-459</td>
+                                <td className="p-2 border border-gray-200">3</td>
+                                <td className="p-2 border border-gray-200">Message is split into 3 parts</td>
+                              </tr>
+                              <tr>
+                                <td className="p-2 border border-gray-200">460-612</td>
+                                <td className="p-2 border border-gray-200">4</td>
+                                <td className="p-2 border border-gray-200">Message is split into 4 parts</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        
+                        <p className="mt-4 text-sm text-gray-600">
+                          Note: Special characters (€, £, $, etc.) and non-Latin alphabets may reduce the character limit per SMS unit.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                  
+                  {activeSection === 'sms-gateway' && activeTopic === 'bulk-sms' && (
+                    <>
+                      <h2>Bulk SMS Messaging</h2>
+                      <p className="text-lg mb-4">
+                        Bulk SMS messaging allows you to send personalized messages to large groups of recipients efficiently and cost-effectively. Mas3ndi's platform is optimized for handling high volumes of messages with excellent deliverability rates.
+                      </p>
+                      
+                      <div className="bg-primary-50 p-5 rounded-lg border border-primary-100 mb-8">
+                        <h3 className="text-lg font-semibold text-primary-700 mb-2">Key Benefits</h3>
+                        <div className="grid md:grid-cols-3 gap-4">
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-1">High Volume Capability</div>
+                            <p className="text-sm text-gray-600">Send thousands of messages in seconds with our optimized infrastructure</p>
+                          </div>
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-1">Personalization</div>
+                            <p className="text-sm text-gray-600">Customize messages with recipient names and other variables</p>
+                          </div>
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-1">Detailed Reports</div>
+                            <p className="text-sm text-gray-600">Get comprehensive delivery analytics and insights</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Sending Bulk SMS via Dashboard</h3>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <h4 className="text-lg font-medium mb-4">Step-by-Step Guide</h4>
+                        
+                        <div className="space-y-4">
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">1</div>
+                              <h4 className="font-medium">Prepare Your Recipient List</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">Create a CSV file with your recipients' information. The file should contain at least these columns:</p>
+                              <div className="grid md:grid-cols-2 gap-4 mb-3">
+                                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                                  <h5 className="font-medium mb-2">Required Columns</h5>
+                                  <ul className="text-sm space-y-1">
+                                    <li className="flex items-start">
+                                      <span className="text-primary-600 font-mono mr-2">phone</span>
+                                      <span>Recipient's phone number with country code</span>
+                                    </li>
+                                  </ul>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                                  <h5 className="font-medium mb-2">Optional Columns (for personalization)</h5>
+                                  <ul className="text-sm space-y-1">
+                                    <li className="flex items-start">
+                                      <span className="text-primary-600 font-mono mr-2">name</span>
+                                      <span>Recipient's name</span>
+                                    </li>
+                                    <li className="flex items-start">
+                                      <span className="text-primary-600 font-mono mr-2">[custom]</span>
+                                      <span>Any other custom fields you want to use</span>
+                                    </li>
+                                  </ul>
+                                </div>
+                              </div>
+                              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 text-sm">
+                                <div className="font-medium text-blue-700">CSV Format Example</div>
+                                <pre className="mt-2 font-mono text-xs overflow-x-auto">phone,name,company
+233201234567,John Doe,ABC Corp
+233207654321,Jane Smith,XYZ Ltd`}</pre>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">2</div>
+                              <h4 className="font-medium">Access Bulk SMS Feature</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>Log in to your Mas3ndi account, navigate to the <Link href="/dashboard" className="text-primary-600 hover:underline font-medium">Dashboard</Link>, and click on the "Bulk SMS" button.</p>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">3</div>
+                              <h4 className="font-medium">Upload Your CSV File</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">Click the "Upload File" button and select your prepared CSV file.</p>
+                              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 text-sm">
+                                <div className="font-medium text-yellow-800">File Size Limits</div>
+                                <p>Maximum file size: 10MB (approximately 100,000 contacts)</p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">4</div>
+                              <h4 className="font-medium">Compose Your Message</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">Create your message template. You can personalize messages using variables from your CSV file:</p>
+                              <div className="bg-gray-50 p-4 rounded border border-gray-200 mb-3">
+                                <h5 className="font-medium mb-2">Using Variables</h5>
+                                <p className="text-sm mb-2">Use {{columnName}} to insert data from your CSV columns.</p>
+                                <div className="bg-white p-3 rounded border border-gray-100">
+                                  <p className="font-medium mb-1">Example Message</p>
+                                  <p className="text-sm font-mono">Hello {{name}}, thank you for being a valued customer of {{company}}. We'd like to offer you a special discount!</p>
+                                </div>
+                              </div>
+                              <p className="mb-3">Select a Sender ID from your approved IDs to use as the message sender.</p>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">5</div>
+                              <h4 className="font-medium">Review and Send</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">Before sending, you'll see:</p>
+                              <ul className="space-y-2">
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>Total number of recipients</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>Total number of SMS units required</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>Total cost</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>A preview of personalized messages for a few recipients</span>
+                                </li>
+                              </ul>
+                              <p className="mt-3">Click "Send Now" to send immediately, or choose to schedule for later delivery.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Sending Bulk SMS via API</h3>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <h4 className="text-lg font-medium mb-4">API Endpoint</h4>
+                        <div className="bg-gray-800 text-white p-3 rounded font-mono text-sm mb-4 overflow-x-auto">
+                          POST https://api.mas3ndi.com/v1/sms/bulk
+                        </div>
+                        
+                        <h4 className="text-lg font-medium mb-2 mt-6">Request Headers</h4>
+                        <div className="bg-white p-3 rounded border border-gray-200 mb-6 overflow-x-auto">
+                          <pre className="font-mono text-sm">
+Content-Type: application/json
+Authorization: Bearer YOUR_API_KEY
+                          `}</pre>
+                        </div>
+                        
+                        <h4 className="text-lg font-medium mb-2">Request Body</h4>
+                        <div className="bg-white p-3 rounded border border-gray-200 mb-4 overflow-x-auto">
+                          <pre className="font-mono text-sm">
+{
+  "sender": "Mas3ndi",
+  "template": "Hello {{name}}, thank you for being a valued customer of {{company}}.",
+  "recipients": [
+    {
+      "phone": "233201234567",
+      "name": "John Doe",
+      "company": "ABC Corp"
+    },
+    {
+      "phone": "233207654321",
+      "name": "Jane Smith",
+      "company": "XYZ Ltd"
+    }
+  ]
+}
+                          `}</pre>
+                        </div>
+                        
+                        <div className="grid md:grid-cols-2 gap-6 mt-6">
+                          <div>
+                            <h4 className="text-lg font-medium mb-2">Parameters</h4>
+                            <table className="w-full text-sm">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="text-left p-2 border border-gray-200">Parameter</th>
+                                  <th className="text-left p-2 border border-gray-200">Description</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">sender</td>
+                                  <td className="p-2 border border-gray-200">Your approved sender ID</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">template</td>
+                                  <td className="p-2 border border-gray-200">Message template with placeholders in {{variable}} format</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">recipients</td>
+                                  <td className="p-2 border border-gray-200">Array of recipient objects with phone number and variables</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                          
+                          <div>
+                            <h4 className="text-lg font-medium mb-2">Response</h4>
+                            <div className="bg-white p-3 rounded border border-gray-200 overflow-x-auto">
+                              <pre className="font-mono text-sm">
+{
+  "status": "success",
+  "code": 200,
+  "message": "Bulk SMS processing started",
+  "data": {
+    "batch_id": "BULK-123456789",
+    "total_recipients": 2,
+    "invalid_numbers": [],
+    "estimated_units": 2,
+    "estimated_cost": 0.02,
+    "status_url": "https://api.mas3ndi.com/v1/sms/status/BULK-123456789"
+  }
+}
+                              `}</pre>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <h4 className="text-lg font-medium mb-4">Code Example: Bulk SMS with JavaScript</h4>
+                        <div className="bg-gray-800 p-4 rounded overflow-x-auto">
+                          <pre className="text-gray-100 font-mono text-sm">
+// Send Bulk SMS using JavaScript
+const sendBulkSMS = async () => {
+  try {
+    const response = await fetch('https://api.mas3ndi.com/v1/sms/bulk', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_API_KEY'
+      },
+      body: JSON.stringify({
+        sender: "Mas3ndi",
+        template: "Hello {{name}}, thank you for being a valued customer of {{company}}.",
+        recipients: [
+          {
+            phone: "233201234567",
+            name: "John Doe",
+            company: "ABC Corp"
+          },
+          {
+            phone: "233207654321",
+            name: "Jane Smith",
+            company: "XYZ Ltd"
+          }
+        ]
+      })
+    });
+    
+    const data = await response.json();
+    console.log(data);
+    
+    // You can poll the status_url to track the progress
+    // of your bulk SMS campaign
+    if (data.status === "success") {
+      checkBulkSMSStatus(data.data.status_url);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
+
+// Check the status of a bulk SMS campaign
+const checkBulkSMSStatus = async (statusUrl) => {
+  try {
+    const response = await fetch(statusUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer YOUR_API_KEY'
+      }
+    });
+    
+    const data = await response.json();
+    console.log('Campaign Status:', data);
+  } catch (error) {
+    console.error('Error checking status:', error);
+  }
+};
+
+sendBulkSMS();
+                          `}</pre>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-yellow-800 font-medium">Best Practices</h3>
+                            <div className="mt-2 text-yellow-700 text-sm">
+                              <ul className="list-disc pl-5 space-y-1">
+                                <li>For very large batches (>10,000 recipients), break them into multiple API calls</li>
+                                <li>Include proper error handling in your implementation</li>
+                                <li>Always validate phone numbers before sending</li>
+                                <li>Consider sending during business hours for better engagement</li>
+                                <li>Test your templates with a small batch before sending to your entire list</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-100 mt-8">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-green-800 font-medium">Need to send even larger volumes?</h3>
+                            <p className="text-green-700 text-sm mt-1">
+                              For enterprise-level bulk messaging (millions of messages), contact our <Link href="#contact" className="text-green-800 underline">sales team</Link> to discuss custom solutions and pricing.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {activeSection === 'sms-gateway' && activeTopic === 'scheduled-sms' && (
+                    <>
+                      <h2>Scheduled SMS</h2>
+                      <p className="text-lg mb-4">
+                        Scheduled SMS allows you to prepare messages in advance and send them at a specific date and time. This feature is perfect for time-sensitive campaigns, birthday greetings, appointment reminders, and more.
+                      </p>
+                      
+                      <div className="bg-primary-50 p-5 rounded-lg border border-primary-100 mb-8">
+                        <h3 className="text-lg font-semibold text-primary-700 mb-2">Key Benefits</h3>
+                        <div className="grid md:grid-cols-3 gap-4">
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-1">Plan Ahead</div>
+                            <p className="text-sm text-gray-600">Prepare campaigns in advance and schedule them for optimal times</p>
+                          </div>
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-1">Time Zone Targeting</div>
+                            <p className="text-sm text-gray-600">Ensure messages arrive at appropriate local times for recipients</p>
+                          </div>
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-1">Recurring Messages</div>
+                            <p className="text-sm text-gray-600">Set up repeating messages on daily, weekly, or monthly schedules</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Scheduling SMS via Dashboard</h3>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <h4 className="text-lg font-medium mb-4">Single Message Scheduling</h4>
+                        
+                        <div className="space-y-4">
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">1</div>
+                              <h4 className="font-medium">Compose Your Message</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>Follow the same steps as sending a regular SMS, but instead of clicking "Send Now", look for the scheduling options.</p>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">2</div>
+                              <h4 className="font-medium">Set Schedule</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">Click on "Schedule for Later" and configure your desired delivery time:</p>
+                              <div className="grid md:grid-cols-2 gap-4">
+                                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                                  <h5 className="font-medium mb-2">Date & Time</h5>
+                                  <p className="text-sm">Select the specific date and time when you want your message to be sent.</p>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                                  <h5 className="font-medium mb-2">Time Zone</h5>
+                                  <p className="text-sm">Choose the appropriate time zone to ensure your message is delivered at the correct local time.</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">3</div>
+                              <h4 className="font-medium">Confirm and Schedule</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>Review all details and click "Schedule" to confirm. The message will be queued and sent automatically at the specified time.</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <h4 className="text-lg font-medium mb-4 mt-8">Bulk Message Scheduling</h4>
+                        <p className="mb-4">You can also schedule bulk SMS campaigns by following the bulk SMS process and selecting the schedule option instead of immediate sending.</p>
+                        
+                        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 text-sm">
+                          <div className="font-medium text-blue-700">Pro Tip</div>
+                          <p>For seasonal campaigns like holidays or special events, prepare and schedule your messages well in advance to avoid the last-minute rush.</p>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Setting Up Recurring Messages</h3>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <p className="mb-4">Recurring messages are perfect for regular reminders, updates, or periodic notifications.</p>
+                        
+                        <div className="space-y-4">
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">1</div>
+                              <h4 className="font-medium">Access Recurring SMS</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>From your dashboard, navigate to "Scheduled SMS" and select "Create Recurring Message".</p>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">2</div>
+                              <h4 className="font-medium">Configure Schedule Pattern</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">Set up your recurring schedule with these options:</p>
+                              <div className="grid md:grid-cols-3 gap-3">
+                                <div className="border border-gray-200 rounded p-3">
+                                  <div className="font-medium mb-1">Daily</div>
+                                  <p className="text-sm text-gray-600">Select time of day</p>
+                                </div>
+                                <div className="border border-gray-200 rounded p-3">
+                                  <div className="font-medium mb-1">Weekly</div>
+                                  <p className="text-sm text-gray-600">Select days of week and time</p>
+                                </div>
+                                <div className="border border-gray-200 rounded p-3">
+                                  <div className="font-medium mb-1">Monthly</div>
+                                  <p className="text-sm text-gray-600">Select day of month and time</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">3</div>
+                              <h4 className="font-medium">Set Duration</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">Specify how long the recurring message should run:</p>
+                              <ul className="space-y-2">
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>End after a specific number of occurrences</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>End on a specific date</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <svg className="w-5 h-5 text-primary-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>No end date (will run until manually canceled)</span>
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Scheduling SMS via API</h3>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <h4 className="text-lg font-medium mb-4">API Endpoint</h4>
+                        <div className="bg-gray-800 text-white p-3 rounded font-mono text-sm mb-4 overflow-x-auto">
+                          POST https://api.mas3ndi.com/v1/sms/schedule
+                        </div>
+                        
+                        <h4 className="text-lg font-medium mb-2 mt-6">Request Body</h4>
+                        <div className="bg-white p-3 rounded border border-gray-200 mb-4 overflow-x-auto">
+                          <pre className="font-mono text-sm">
+{
+  "sender": "Mas3ndi",
+  "message": "Your appointment is tomorrow at 2PM. Please confirm by replying YES.",
+  "recipients": ["233201234567", "233207654321"],
+  "schedule": {
+    "sendAt": "2023-12-15T14:30:00+00:00",
+    "timezone": "Africa/Accra"
+  }
+}
+                          `}</pre>
+                        </div>
+                        
+                        <div className="grid md:grid-cols-2 gap-6 mt-6">
+                          <div>
+                            <h4 className="text-lg font-medium mb-2">Schedule Parameters</h4>
+                            <table className="w-full text-sm">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="text-left p-2 border border-gray-200">Parameter</th>
+                                  <th className="text-left p-2 border border-gray-200">Description</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">sendAt</td>
+                                  <td className="p-2 border border-gray-200">ISO 8601 formatted date and time for delivery</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">timezone</td>
+                                  <td className="p-2 border border-gray-200">IANA time zone identifier (e.g., Africa/Accra)</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                          
+                          <div>
+                            <h4 className="text-lg font-medium mb-2">Response</h4>
+                            <div className="bg-white p-3 rounded border border-gray-200 overflow-x-auto">
+                              <pre className="font-mono text-sm">
+{
+  "status": "success",
+  "code": 200,
+  "message": "SMS scheduled successfully",
+  "data": {
+    "schedule_id": "SCH-123456789",
+    "scheduled_time": "2023-12-15T14:30:00+00:00",
+    "recipient_count": 2,
+    "estimated_units": 2
+  }
+}
+                              `}</pre>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <h4 className="text-lg font-medium mb-4">Code Example: Scheduled SMS with JavaScript</h4>
+                        <div className="bg-gray-800 p-4 rounded overflow-x-auto">
+                          <pre className="text-gray-100 font-mono text-sm">
+// Schedule an SMS for future delivery
+const scheduleMessage = async () => {
+  try {
+    const response = await fetch('https://api.mas3ndi.com/v1/sms/schedule', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_API_KEY'
+      },
+      body: JSON.stringify({
+        sender: "Mas3ndi",
+        message: "Your appointment is tomorrow at 2PM. Please confirm by replying YES.",
+        recipients: ["233201234567", "233207654321"],
+        schedule: {
+          sendAt: "2023-12-15T14:30:00+00:00",
+          timezone: "Africa/Accra"
+        }
+      })
+    });
+    
+    const data = await response.json();
+    console.log('Schedule Response:', data);
+    
+    // Store the schedule_id to manage this scheduled message later
+    if (data.status === "success") {
+      const scheduleId = data.data.schedule_id;
+      console.log('Schedule ID for future reference:', scheduleId);
+    }
+  } catch (error) {
+    console.error('Error scheduling message:', error);
+  }
+};
+
+scheduleMessage();
+                          `}</pre>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Managing Scheduled Messages</h3>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <p className="mb-4">You can view, edit, or cancel your scheduled messages at any time before they are sent.</p>
+                        
+                        <div className="grid md:grid-cols-3 gap-4 mb-6">
+                          <div className="bg-white p-4 rounded-lg border border-gray-200">
+                            <h4 className="font-medium mb-2">View Schedule</h4>
+                            <p className="text-sm text-gray-600 mb-3">Access your scheduled messages from the "Scheduled SMS" section of your dashboard.</p>
+                            <div className="font-mono text-xs bg-gray-100 p-2 rounded">GET /v1/sms/schedule/{'{schedule_id}'}</div>
+                          </div>
+                          
+                          <div className="bg-white p-4 rounded-lg border border-gray-200">
+                            <h4 className="font-medium mb-2">Edit Schedule</h4>
+                            <p className="text-sm text-gray-600 mb-3">Modify the content or timing of messages that haven't been sent yet.</p>
+                            <div className="font-mono text-xs bg-gray-100 p-2 rounded">PUT /v1/sms/schedule/{'{schedule_id}'}</div>
+                          </div>
+                          
+                          <div className="bg-white p-4 rounded-lg border border-gray-200">
+                            <h4 className="font-medium mb-2">Cancel Schedule</h4>
+                            <p className="text-sm text-gray-600 mb-3">Cancel any scheduled message that you no longer want to send.</p>
+                            <div className="font-mono text-xs bg-gray-100 p-2 rounded">DELETE /v1/sms/schedule/{'{schedule_id}'}</div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 text-sm">
+                          <div className="font-medium text-yellow-800">Important</div>
+                          <p className="text-yellow-700">Once a scheduled message has been processed and sent, it cannot be recalled or edited.</p>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-100 mt-8">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-green-800 font-medium">Best Practices for Scheduled SMS</h3>
+                            <ul className="mt-2 text-green-700 text-sm list-disc pl-5 space-y-1">
+                              <li>Schedule messages during appropriate hours (typically 8 AM to 8 PM local time)</li>
+                              <li>Set up reminders with enough advance notice</li>
+                              <li>Test your scheduled message flow with a small group first</li>
+                              <li>Always double-check time zones, especially for international recipients</li>
+                              <li>Consider the day of the week when scheduling (avoid weekends for business messages)</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {activeSection === 'sms-gateway' && activeTopic === 'sender-id-registration' && (
+                    <>
+                      <h2>Sender ID Registration</h2>
+                      <p className="text-lg mb-4">
+                        A Sender ID is the name or number that appears as the sender of your SMS messages. Using a branded Sender ID increases recognition, trust, and engagement with your messages.
+                      </p>
+                      
+                      <div className="bg-primary-50 p-5 rounded-lg border border-primary-100 mb-8">
+                        <h3 className="text-lg font-semibold text-primary-700 mb-3">Why Register a Sender ID?</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-2">Brand Recognition</div>
+                            <p className="text-sm text-gray-600">Recipients immediately recognize messages from your organization</p>
+                          </div>
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-2">Higher Trust</div>
+                            <p className="text-sm text-gray-600">Messages from known entities are less likely to be ignored or reported as spam</p>
+                          </div>
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-2">Consistency</div>
+                            <p className="text-sm text-gray-600">Maintain a consistent identity across all customer communications</p>
+                          </div>
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-2">Compliance</div>
+                            <p className="text-sm text-gray-600">Meet regulatory requirements in many countries for business messaging</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Sender ID Types & Restrictions</h3>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div>
+                            <h4 className="text-lg font-medium mb-3">Alphanumeric Sender IDs</h4>
+                            <div className="space-y-3">
+                              <p>Text-based sender names that can include letters and numbers.</p>
+                              <div className="bg-white p-3 rounded border border-gray-200">
+                                <h5 className="font-medium mb-1">Format Requirements:</h5>
+                                <ul className="text-sm space-y-1 list-disc pl-5">
+                                  <li>Maximum length: 11 characters</li>
+                                  <li>Allowed characters: A-Z, 0-9</li>
+                                  <li>No spaces or special characters</li>
+                                </ul>
+                              </div>
+                              <div className="flex gap-2">
+                                <div className="bg-green-50 text-green-700 text-sm px-3 py-1 rounded border border-green-100">
+                                  <span className="font-medium">Valid:</span> Mas3ndi, ACME2023, Company1
+                                </div>
+                                <div className="bg-red-50 text-red-700 text-sm px-3 py-1 rounded border border-red-100">
+                                  <span className="font-medium">Invalid:</span> Mas 3ndi, ACME-Inc, Co.Ltd
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <h4 className="text-lg font-medium mb-3">Numeric Sender IDs</h4>
+                            <div className="space-y-3">
+                              <p>Phone numbers that represent your business or service.</p>
+                              <div className="bg-white p-3 rounded border border-gray-200">
+                                <h5 className="font-medium mb-1">Format Requirements:</h5>
+                                <ul className="text-sm space-y-1 list-disc pl-5">
+                                  <li>Must be a valid phone number</li>
+                                  <li>International format recommended</li>
+                                  <li>Some countries require verification of ownership</li>
+                                </ul>
+                              </div>
+                              <div className="flex gap-2">
+                                <div className="bg-green-50 text-green-700 text-sm px-3 py-1 rounded border border-green-100">
+                                  <span className="font-medium">Valid:</span> 233501234567, +233501234567
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-6 text-sm">
+                          <div className="font-medium text-yellow-800">Country-Specific Regulations</div>
+                          <p className="text-yellow-700 mb-2">Sender ID regulations vary significantly by country:</p>
+                          <ul className="text-yellow-700 list-disc pl-5 space-y-1">
+                            <li>Some countries require pre-registration with regulatory authorities</li>
+                            <li>Some allow alphanumeric IDs while others only permit numeric IDs</li>
+                            <li>Some have strict content policies tied to specific Sender IDs</li>
+                          </ul>
+                          <p className="text-yellow-700 mt-2">Mas3ndi handles these regulatory requirements for you when you register a Sender ID through our platform.</p>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Sender ID Registration Process</h3>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <div className="space-y-5">
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">1</div>
+                              <h4 className="font-medium">Submit Registration Request</h4>
+                            </div>
+                            <div className="ml-11 space-y-3">
+                              <p>From your Mas3ndi dashboard, navigate to "SMS Gateway" > "Sender IDs" > "Register New Sender ID".</p>
+                              
+                              <div className="bg-gray-50 p-3 rounded border border-gray-200 text-sm">
+                                <h5 className="font-medium mb-2">Required Information:</h5>
+                                <ul className="list-disc pl-5 space-y-1">
+                                  <li>Desired Sender ID (up to 11 characters)</li>
+                                  <li>Organization/Company name</li>
+                                  <li>Business registration documents</li>
+                                  <li>Contact details</li>
+                                  <li>Purpose of Sender ID</li>
+                                  <li>Sample messages you plan to send</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">2</div>
+                              <h4 className="font-medium">Verification & Review</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">Our team will review your application and verify the submitted documents.</p>
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                                  <span className="font-medium block mb-1">Processing Time:</span>
+                                  <span>Typically 1-3 business days</span>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                                  <span className="font-medium block mb-1">Status Updates:</span>
+                                  <span>Receive email notifications at each stage</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">3</div>
+                              <h4 className="font-medium">Approval & Activation</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>Once approved, your Sender ID will be activated and ready to use in your SMS campaigns.</p>
+                              <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mt-3 text-sm">
+                                <div className="font-medium text-blue-700">Note</div>
+                                <p className="text-blue-600">Some Sender IDs may be subject to additional registration with local telecom authorities. Our team will guide you through any extra steps required.</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Managing Your Sender IDs</h3>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <div className="grid md:grid-cols-3 gap-4 mb-6">
+                          <div className="bg-white p-4 rounded-lg border border-gray-200">
+                            <h4 className="font-medium mb-2">View Sender IDs</h4>
+                            <p className="text-sm text-gray-600">Access all your registered Sender IDs from the dashboard, including their status and usage statistics.</p>
+                          </div>
+                          
+                          <div className="bg-white p-4 rounded-lg border border-gray-200">
+                            <h4 className="font-medium mb-2">Default Sender ID</h4>
+                            <p className="text-sm text-gray-600">Set a preferred Sender ID to be used automatically for your messages unless otherwise specified.</p>
+                          </div>
+                          
+                          <div className="bg-white p-4 rounded-lg border border-gray-200">
+                            <h4 className="font-medium mb-2">Renew Registration</h4>
+                            <p className="text-sm text-gray-600">Some countries require periodic renewal of Sender ID registrations. We'll notify you when renewal is needed.</p>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white p-5 rounded-lg border border-gray-100">
+                          <h4 className="font-medium mb-3">Using Sender IDs in API Calls</h4>
+                          <p className="text-sm mb-4">When sending messages via API, simply specify the registered Sender ID in your request:</p>
+                          
+                          <div className="bg-gray-800 p-4 rounded overflow-x-auto">
+                            <pre className="text-gray-100 font-mono text-sm">
+// Using a specific Sender ID in your API calls
+const sendSMS = async () => {
+  try {
+    const response = await fetch('https://api.mas3ndi.com/v1/sms/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_API_KEY'
+      },
+      body: JSON.stringify({
+        sender: "YourID",       // Your registered Sender ID
+        message: "Your message content here",
+        recipients: ["233201234567"]
+      })
+    });
+    
+    const data = await response.json();
+    console.log('Response:', data);
+  } catch (error) {
+    console.error('Error sending message:', error);
+  }
+};
+                            `}</pre>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-100 mt-8">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-green-800 font-medium">Best Practices for Sender IDs</h3>
+                            <ul className="mt-2 text-green-700 text-sm list-disc pl-5 space-y-1">
+                              <li>Choose a Sender ID that clearly represents your brand or organization</li>
+                              <li>Keep it short and memorable (ideally 6-8 characters)</li>
+                              <li>Avoid generic terms that might be used by others</li>
+                              <li>Register multiple Sender IDs if you operate in different countries with varying regulations</li>
+                              <li>Test your Sender ID on different mobile carriers before full-scale deployment</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {activeSection === 'sms-gateway' && activeTopic === 'delivery-reports' && (
+                    <>
+                      <h2>Delivery Reports & Webhooks</h2>
+                      <p className="text-lg mb-4">
+                        Track the delivery status of your SMS messages and receive real-time notifications through webhooks to automate your communication workflows.
+                      </p>
+                      
+                      <div className="bg-primary-50 p-5 rounded-lg border border-primary-100 mb-8">
+                        <h3 className="text-lg font-semibold text-primary-700 mb-3">Why Delivery Reports Matter</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-2">Message Confirmation</div>
+                            <p className="text-sm text-gray-600">Verify that your messages have been successfully delivered to recipients</p>
+                          </div>
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-2">Failure Analysis</div>
+                            <p className="text-sm text-gray-600">Identify and address delivery issues such as invalid numbers or network problems</p>
+                          </div>
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-2">Campaign Metrics</div>
+                            <p className="text-sm text-gray-600">Measure the success rate of your messaging campaigns</p>
+                          </div>
+                          <div className="bg-white p-4 rounded shadow-sm border border-gray-100">
+                            <div className="font-medium mb-2">Automated Workflows</div>
+                            <p className="text-sm text-gray-600">Trigger follow-up actions based on message delivery status</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Understanding Delivery Statuses</h3>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <p className="mb-4">Each SMS message in the Mas3ndi system goes through several status phases during its lifecycle:</p>
+                        
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="text-left p-3 border border-gray-200">Status</th>
+                                <th className="text-left p-3 border border-gray-200">Description</th>
+                                <th className="text-left p-3 border border-gray-200">What It Means</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td className="p-3 border border-gray-200">
+                                  <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">SUBMITTED</span>
+                                </td>
+                                <td className="p-3 border border-gray-200">Message accepted by Mas3ndi</td>
+                                <td className="p-3 border border-gray-200">Your request was valid and has been queued for processing</td>
+                              </tr>
+                              <tr>
+                                <td className="p-3 border border-gray-200">
+                                  <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium">PROCESSED</span>
+                                </td>
+                                <td className="p-3 border border-gray-200">Message sent to carrier</td>
+                                <td className="p-3 border border-gray-200">Your message has been processed and forwarded to the mobile network</td>
+                              </tr>
+                              <tr>
+                                <td className="p-3 border border-gray-200">
+                                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">DELIVERED</span>
+                                </td>
+                                <td className="p-3 border border-gray-200">Message delivered to recipient</td>
+                                <td className="p-3 border border-gray-200">The message was successfully delivered to the recipient's device</td>
+                              </tr>
+                              <tr>
+                                <td className="p-3 border border-gray-200">
+                                  <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-medium">PENDING</span>
+                                </td>
+                                <td className="p-3 border border-gray-200">Delivery in progress</td>
+                                <td className="p-3 border border-gray-200">The message is still being attempted for delivery (recipient may be offline)</td>
+                              </tr>
+                              <tr>
+                                <td className="p-3 border border-gray-200">
+                                  <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium">FAILED</span>
+                                </td>
+                                <td className="p-3 border border-gray-200">Message delivery failed</td>
+                                <td className="p-3 border border-gray-200">The message could not be delivered (with specific failure reason)</td>
+                              </tr>
+                              <tr>
+                                <td className="p-3 border border-gray-200">
+                                  <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium">EXPIRED</span>
+                                </td>
+                                <td className="p-3 border border-gray-200">Message validity period ended</td>
+                                <td className="p-3 border border-gray-200">The message wasn't delivered within the validity period (typically 24-72 hours)</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        
+                        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mt-6 text-sm">
+                          <div className="font-medium text-blue-700">Status Timeline</div>
+                          <p className="text-blue-600">Status updates typically happen in real-time, but network delays can sometimes cause a delay between the actual delivery and when the status update is received by our system.</p>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Checking Delivery Status</h3>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <h4 className="text-lg font-medium mb-4">Via Dashboard</h4>
+                        
+                        <div className="space-y-4 mb-8">
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">1</div>
+                              <h4 className="font-medium">Access Message Reports</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>From your dashboard, navigate to "SMS Gateway" > "Reports & Analytics" > "Message Reports".</p>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">2</div>
+                              <h4 className="font-medium">Filter Messages</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">Use the filtering options to find specific messages:</p>
+                              <div className="grid md:grid-cols-3 gap-3 text-sm">
+                                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                                  <span className="font-medium block mb-1">By Date Range</span>
+                                  <span>Select start and end dates</span>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                                  <span className="font-medium block mb-1">By Recipient</span>
+                                  <span>Enter phone number to search</span>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                                  <span className="font-medium block mb-1">By Status</span>
+                                  <span>Filter by delivery status</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">3</div>
+                              <h4 className="font-medium">View Detailed Reports</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>Click on any message to see its complete delivery history, including timestamps for each status change.</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <h4 className="text-lg font-medium mb-4">Via API</h4>
+                        
+                        <div className="bg-gray-800 text-white p-3 rounded font-mono text-sm mb-4 overflow-x-auto">
+                          GET https://api.mas3ndi.com/v1/sms/status/{'{message_id}'}
+                        </div>
+                        
+                        <div className="bg-white p-3 rounded border border-gray-200 mb-4 overflow-x-auto">
+                          <pre className="font-mono text-sm">
+// Response Example
+{
+  "status": "success",
+  "code": 200,
+  "data": {
+    "message_id": "MSG123456789",
+    "recipient": "233201234567",
+    "status": "DELIVERED",
+    "status_details": "Message delivered to handset",
+    "timestamps": {
+      "submitted": "2023-12-10T09:15:23Z",
+      "processed": "2023-12-10T09:15:30Z",
+      "delivered": "2023-12-10T09:16:05Z"
+    },
+    "sender": "Mas3ndi",
+    "message_type": "text",
+    "segments": 1
+  }
+}
+                          `}</pre>
+                        </div>
+                        
+                        <div className="bg-gray-50 p-4 rounded border border-gray-200 mb-6">
+                          <h5 className="font-medium mb-2">Checking Bulk Message Status</h5>
+                          <p className="text-sm mb-3">For bulk SMS campaigns, you can check the overall campaign status as well as individual message statuses:</p>
+                          <div className="font-mono text-xs bg-gray-100 p-2 rounded">GET /v1/sms/campaign/{'{campaign_id}'}</div>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold mb-4">Setting Up Webhooks</h3>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <p className="mb-4">
+                          Webhooks allow you to receive real-time notifications about message status changes without having to constantly poll our API. This enables you to build automated workflows that respond to delivery events.
+                        </p>
+                        
+                        <h4 className="text-lg font-medium mb-4">Configuration Steps</h4>
+                        
+                        <div className="space-y-4 mb-6">
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">1</div>
+                              <h4 className="font-medium">Create Webhook Endpoint</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">Set up an HTTP endpoint on your server that can receive POST requests from Mas3ndi.</p>
+                              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 text-sm">
+                                <div className="font-medium text-yellow-800">Security Note</div>
+                                <p className="text-yellow-700">Your endpoint should be publicly accessible, but we recommend implementing authentication to verify webhook requests are coming from Mas3ndi.</p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">2</div>
+                              <h4 className="font-medium">Register Your Webhook</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p className="mb-3">From your dashboard, go to "Settings" > "API & Webhooks" > "Add New Webhook".</p>
+                              <div className="grid md:grid-cols-2 gap-3 text-sm">
+                                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                                  <span className="font-medium block mb-1">URL</span>
+                                  <span>The endpoint URL where we should send notifications</span>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                                  <span className="font-medium block mb-1">Event Types</span>
+                                  <span>Select which events trigger notifications (e.g., delivery, failure)</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+                            <div className="flex items-center mb-3">
+                              <div className="bg-primary-100 text-primary-700 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-3">3</div>
+                              <h4 className="font-medium">Webhook Secret (Optional)</h4>
+                            </div>
+                            <div className="ml-11">
+                              <p>Generate a webhook secret to verify that incoming webhook requests are from Mas3ndi. We'll include a signature in the webhook headers that you can validate.</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <h4 className="text-lg font-medium mb-3">Webhook Payload</h4>
+                        <p className="mb-3">When a message status changes, we'll send a POST request to your webhook URL with a payload like this:</p>
+                        
+                        <div className="bg-white p-3 rounded border border-gray-200 mb-6 overflow-x-auto">
+                          <pre className="font-mono text-sm">
+{
+  "event": "sms.status_update",
+  "timestamp": "2023-12-10T14:23:45Z",
+  "data": {
+    "message_id": "MSG123456789",
+    "status": "DELIVERED",
+    "recipient": "233201234567",
+    "timestamp": "2023-12-10T14:23:40Z",
+    "status_details": "Message delivered to handset"
+  }
+}
+                          `}</pre>
+                        </div>
+                        
+                        <div className="bg-white p-5 rounded-lg border border-gray-100 mb-6">
+                          <h4 className="font-medium mb-3">Webhook Event Types</h4>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="text-left p-2 border border-gray-200">Event</th>
+                                  <th className="text-left p-2 border border-gray-200">Description</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">sms.submitted</td>
+                                  <td className="p-2 border border-gray-200">Message has been accepted by our system</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">sms.processed</td>
+                                  <td className="p-2 border border-gray-200">Message has been sent to the carrier</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">sms.delivered</td>
+                                  <td className="p-2 border border-gray-200">Message has been successfully delivered</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">sms.failed</td>
+                                  <td className="p-2 border border-gray-200">Message delivery has failed</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 border border-gray-200 font-mono">sms.status_update</td>
+                                  <td className="p-2 border border-gray-200">General status update (includes all status changes)</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-50 p-6 rounded-lg mb-8">
+                        <h4 className="text-lg font-medium mb-4">Code Example: Handling Webhook Events</h4>
+                        
+                        <div className="bg-gray-800 p-4 rounded overflow-x-auto mb-4">
+                          <pre className="text-gray-100 font-mono text-sm">
+// Node.js Express Server Example
+const express = require('express');
+const bodyParser = require('body-parser');
+const crypto = require('crypto');
+
+const app = express();
+app.use(bodyParser.json());
+
+// Your webhook secret from Mas3ndi dashboard
+const webhookSecret = 'your_webhook_secret';
+
+// Verify webhook signature
+function verifySignature(payload, signature) {
+  const hmac = crypto.createHmac('sha256', webhookSecret);
+  const calculatedSignature = hmac.update(JSON.stringify(payload)).digest('hex');
+  return crypto.timingSafeEqual(
+    Buffer.from(calculatedSignature),
+    Buffer.from(signature)
+  );
+}
+
+app.post('/webhooks/mas3ndi', (req, res) => {
+  try {
+    // Get the signature from the headers
+    const signature = req.headers['x-mas3ndi-signature'];
+    
+    // Verify the request is from Mas3ndi
+    if (!signature || !verifySignature(req.body, signature)) {
+      return res.status(401).send('Invalid signature');
+    }
+    
+    // Process the webhook event
+    const event = req.body;
+    
+    switch(event.event) {
+      case 'sms.delivered':
+        console.log(`Message ${event.data.message_id} was delivered to ${event.data.recipient}`);
+        // Update your database, notify your users, etc.
+        break;
+        
+      case 'sms.failed':
+        console.log(`Message ${event.data.message_id} failed: ${event.data.status_details}`);
+        // Handle the failure - retry, notify admin, etc.
+        break;
+        
+      // Handle other event types...
+    }
+    
+    // Always respond with 200 OK to acknowledge receipt
+    res.status(200).send('Webhook received');
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    res.status(500).send('Error processing webhook');
+  }
+});
+
+app.listen(3000, () => {
+  console.log('Webhook server listening on port 3000');
+});
+                          `}</pre>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-100 mt-8">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-green-800 font-medium">Best Practices for Webhooks</h3>
+                            <ul className="mt-2 text-green-700 text-sm list-disc pl-5 space-y-1">
+                              <li>Implement idempotency to handle potential duplicate webhook events</li>
+                              <li>Respond to webhook requests quickly (under 5 seconds) to avoid timeouts</li>
+                              <li>Store the raw webhook data before processing to help with troubleshooting</li>
+                              <li>Implement proper error handling to prevent your webhook processing from breaking</li>
+                              <li>Set up monitoring to alert you if webhook deliveries fail</li>
+                              <li>Test your webhook implementation with our testing tools in the dashboard</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Additional content sections would be added here for other topics */}
+                  
+{{ ... }}
+                  <div className="mt-12 p-6 bg-primary-50 rounded-lg border border-primary-100">
+                    <h3 className="text-lg font-bold text-primary-700 mb-2">Need further assistance?</h3>
+                    <p className="text-gray-700 mb-4">
+                      Our support team is ready to help you with any questions or issues you might encounter.
+                    </p>
+                    <Link href="#contact" className="inline-block px-6 py-2 bg-primary-600 text-white font-medium rounded-md hover:bg-primary-700 transition-colors">
+                      Contact Support
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}
+

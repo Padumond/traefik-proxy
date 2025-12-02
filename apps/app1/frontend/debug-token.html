@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Token Storage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        pre {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .success {
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Token Storage - Mas3ndi</h1>
+        
+        <div class="section">
+            <h3>📱 Current localStorage Contents</h3>
+            <button onclick="checkLocalStorage()">Check localStorage</button>
+            <pre id="localStorage-content">Click "Check localStorage" to see contents</pre>
+        </div>
+
+        <div class="section">
+            <h3>🔑 Token Extraction Test</h3>
+            <button onclick="testTokenExtraction()">Test Token Extraction</button>
+            <pre id="token-extraction">Click "Test Token Extraction" to test</pre>
+        </div>
+
+        <div class="section">
+            <h3>🌐 API Test</h3>
+            <button onclick="testSenderIdsAPI()">Test Sender IDs API</button>
+            <pre id="api-test">Click "Test Sender IDs API" to test</pre>
+        </div>
+
+        <div class="section">
+            <h3>🔐 Login Test</h3>
+            <button onclick="testLogin()">Test Login (client@mas3ndi.com)</button>
+            <pre id="login-test">Click "Test Login" to test</pre>
+        </div>
+    </div>
+
+    <script>
+        function checkLocalStorage() {
+            const output = document.getElementById('localStorage-content');
+            try {
+                const allItems = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    const value = localStorage.getItem(key);
+                    allItems[key] = value;
+                }
+                output.innerHTML = JSON.stringify(allItems, null, 2);
+            } catch (error) {
+                output.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+
+        function testTokenExtraction() {
+            const output = document.getElementById('token-extraction');
+            try {
+                // Test the same logic as the frontend
+                let token = null;
+                
+                // First try to get from the mas3ndi_auth_state
+                const authState = localStorage.getItem("mas3ndi_auth_state");
+                if (authState) {
+                    const parsedState = JSON.parse(authState);
+                    token = parsedState.token;
+                }
+
+                // Fallback to direct token storage
+                if (!token) {
+                    token = localStorage.getItem("token");
+                }
+
+                const result = {
+                    authState: authState ? JSON.parse(authState) : null,
+                    directToken: localStorage.getItem("token"),
+                    extractedToken: token,
+                    hasToken: !!token
+                };
+
+                output.innerHTML = JSON.stringify(result, null, 2);
+            } catch (error) {
+                output.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+
+        async function testSenderIdsAPI() {
+            const output = document.getElementById('api-test');
+            output.innerHTML = 'Testing API...';
+            
+            try {
+                // Get token using same logic as frontend
+                let token = null;
+                const authState = localStorage.getItem("mas3ndi_auth_state");
+                if (authState) {
+                    const parsedState = JSON.parse(authState);
+                    token = parsedState.token;
+                }
+                if (!token) {
+                    token = localStorage.getItem("token");
+                }
+
+                if (!token) {
+                    output.innerHTML = '<span class="error">No token found in localStorage</span>';
+                    return;
+                }
+
+                const response = await fetch('http://localhost:3000/api/sender-ids', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                const result = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    data: data
+                };
+
+                if (response.ok) {
+                    output.innerHTML = `<span class="success">✅ API call successful!</span>\n${JSON.stringify(result, null, 2)}`;
+                } else {
+                    output.innerHTML = `<span class="error">❌ API call failed!</span>\n${JSON.stringify(result, null, 2)}`;
+                }
+            } catch (error) {
+                output.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+
+        async function testLogin() {
+            const output = document.getElementById('login-test');
+            output.innerHTML = 'Testing login...';
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'client@mas3ndi.com',
+                        password: 'Client123!'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // Store token in localStorage like the frontend would
+                    const authState = {
+                        token: data.data.token,
+                        user: data.data.user,
+                        refreshToken: data.data.refreshToken
+                    };
+                    localStorage.setItem('mas3ndi_auth_state', JSON.stringify(authState));
+                    
+                    output.innerHTML = `<span class="success">✅ Login successful! Token stored in localStorage.</span>\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    output.innerHTML = `<span class="error">❌ Login failed!</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                output.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+
+        // Auto-check localStorage on page load
+        window.onload = function() {
+            checkLocalStorage();
+        };
+    </script>
+</body>
+</html>

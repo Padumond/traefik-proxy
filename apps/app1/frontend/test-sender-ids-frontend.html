@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Sender IDs Frontend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        pre {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .success {
+            color: #28a745;
+        }
+        .warning {
+            color: #ffc107;
+        }
+        .info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Sender IDs Frontend - Mas3ndi</h1>
+        
+        <div class="section">
+            <h3>🔐 Step 1: Login and Store Token</h3>
+            <button onclick="loginAsClient()">Login as Client</button>
+            <button onclick="loginAsAdmin()">Login as Admin</button>
+            <pre id="login-result">Click login button to start</pre>
+        </div>
+
+        <div class="section">
+            <h3>📋 Step 2: Test Sender IDs API (Direct)</h3>
+            <button onclick="testSenderIdsAPI()">Test GET /api/sender-ids</button>
+            <pre id="api-result">Click test button after login</pre>
+        </div>
+
+        <div class="section">
+            <h3>🔍 Step 3: Test Data Structure Processing</h3>
+            <button onclick="testDataProcessing()">Test Data Processing Logic</button>
+            <pre id="processing-result">Click test button after API test</pre>
+        </div>
+
+        <div class="section">
+            <h3>📊 Step 4: Compare with Messages Page Logic</h3>
+            <button onclick="compareWithMessagesLogic()">Compare Processing Logic</button>
+            <pre id="comparison-result">Click test button to compare</pre>
+        </div>
+
+        <div class="section">
+            <h3>🎯 Step 5: Test Frontend Redux API</h3>
+            <button onclick="testReduxAPI()">Test Redux API Call</button>
+            <pre id="redux-result">Click test button to test Redux</pre>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = null;
+        let currentUser = null;
+        let lastApiResponse = null;
+
+        async function loginAsClient() {
+            const output = document.getElementById('login-result');
+            output.innerHTML = 'Logging in as client...';
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'client@mas3ndi.com',
+                        password: 'Client123!'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    currentToken = data.data.token;
+                    currentUser = data.data.user;
+                    
+                    // Store in localStorage like the frontend
+                    const authState = {
+                        token: data.data.token,
+                        user: data.data.user,
+                        refreshToken: data.data.refreshToken
+                    };
+                    localStorage.setItem('mas3ndi_auth_state', JSON.stringify(authState));
+                    
+                    output.innerHTML = `<span class="success">✅ Client login successful!</span>\n${JSON.stringify({
+                        user: data.data.user,
+                        tokenLength: data.data.token.length,
+                        hasRefreshToken: !!data.data.refreshToken
+                    }, null, 2)}`;
+                } else {
+                    output.innerHTML = `<span class="error">❌ Login failed!</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                output.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+
+        async function loginAsAdmin() {
+            const output = document.getElementById('login-result');
+            output.innerHTML = 'Logging in as admin...';
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@mas3ndi.com',
+                        password: 'Admin123!'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    currentToken = data.data.token;
+                    currentUser = data.data.user;
+                    
+                    // Store in localStorage like the frontend
+                    const authState = {
+                        token: data.data.token,
+                        user: data.data.user,
+                        refreshToken: data.data.refreshToken
+                    };
+                    localStorage.setItem('mas3ndi_auth_state', JSON.stringify(authState));
+                    
+                    output.innerHTML = `<span class="success">✅ Admin login successful!</span>\n${JSON.stringify({
+                        user: data.data.user,
+                        tokenLength: data.data.token.length,
+                        hasRefreshToken: !!data.data.refreshToken
+                    }, null, 2)}`;
+                } else {
+                    output.innerHTML = `<span class="error">❌ Login failed!</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                output.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+
+        async function testSenderIdsAPI() {
+            const output = document.getElementById('api-result');
+            
+            if (!currentToken) {
+                output.innerHTML = '<span class="error">❌ Please login first!</span>';
+                return;
+            }
+            
+            output.innerHTML = 'Testing sender IDs API...';
+            
+            try {
+                const endpoint = currentUser.role === 'ADMIN' ? 
+                    'http://localhost:3000/api/sender-ids/all' : 
+                    'http://localhost:3000/api/sender-ids';
+                
+                const response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                lastApiResponse = data;
+                
+                if (response.ok) {
+                    const summary = {
+                        status: response.status,
+                        endpoint: endpoint,
+                        dataStructure: {
+                            hasData: !!data.data,
+                            isDataArray: Array.isArray(data.data),
+                            hasNestedData: !!(data.data && data.data.data),
+                            isNestedDataArray: !!(data.data && Array.isArray(data.data.data)),
+                            dataCount: Array.isArray(data.data) ? data.data.length : 
+                                      (data.data && Array.isArray(data.data.data)) ? data.data.data.length : 0,
+                            hasPagination: !!(data.data && data.data.pagination)
+                        },
+                        fullResponse: data
+                    };
+                    
+                    output.innerHTML = `<span class="success">✅ API call successful!</span>\n${JSON.stringify(summary, null, 2)}`;
+                } else {
+                    output.innerHTML = `<span class="error">❌ API call failed!</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                output.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+
+        function testDataProcessing() {
+            const output = document.getElementById('processing-result');
+            
+            if (!lastApiResponse) {
+                output.innerHTML = '<span class="error">❌ Please test API first!</span>';
+                return;
+            }
+            
+            try {
+                // Test the same logic as the enhanced sender IDs page
+                let senderIds = [];
+                
+                if (!lastApiResponse.data) {
+                    senderIds = [];
+                } else if (Array.isArray(lastApiResponse.data)) {
+                    senderIds = lastApiResponse.data;
+                } else if (lastApiResponse.data.data && Array.isArray(lastApiResponse.data.data)) {
+                    senderIds = lastApiResponse.data.data;
+                } else if (lastApiResponse.data.senderIds && Array.isArray(lastApiResponse.data.senderIds)) {
+                    senderIds = lastApiResponse.data.senderIds;
+                } else {
+                    console.warn("Unexpected sender IDs data structure:", lastApiResponse);
+                    senderIds = [];
+                }
+                
+                const result = {
+                    originalResponse: lastApiResponse,
+                    processedSenderIds: senderIds,
+                    count: senderIds.length,
+                    firstItem: senderIds[0] || null,
+                    allStatuses: senderIds.map(s => s.status),
+                    approvedCount: senderIds.filter(s => s.status === 'APPROVED').length
+                };
+                
+                output.innerHTML = `<span class="success">✅ Data processing successful!</span>\n${JSON.stringify(result, null, 2)}`;
+            } catch (error) {
+                output.innerHTML = `<span class="error">Error processing data: ${error.message}</span>`;
+            }
+        }
+
+        function compareWithMessagesLogic() {
+            const output = document.getElementById('comparison-result');
+            
+            if (!lastApiResponse) {
+                output.innerHTML = '<span class="error">❌ Please test API first!</span>';
+                return;
+            }
+            
+            try {
+                // Messages page logic
+                let messagesPageResult = [];
+                if (lastApiResponse.data) {
+                    let senderIdsArray = [];
+                    
+                    if (Array.isArray(lastApiResponse.data)) {
+                        senderIdsArray = lastApiResponse.data;
+                    } else if (lastApiResponse.data.data && Array.isArray(lastApiResponse.data.data)) {
+                        senderIdsArray = lastApiResponse.data.data;
+                    } else if (lastApiResponse.data.senderIds && Array.isArray(lastApiResponse.data.senderIds)) {
+                        senderIdsArray = lastApiResponse.data.senderIds;
+                    }
+                    
+                    messagesPageResult = senderIdsArray
+                        .filter(senderId => senderId.status === "APPROVED")
+                        .map(senderId => senderId.senderId);
+                }
+                
+                // Sender IDs page logic (fixed)
+                let senderIdsPageResult = [];
+                if (!lastApiResponse.data) {
+                    senderIdsPageResult = [];
+                } else if (Array.isArray(lastApiResponse.data)) {
+                    senderIdsPageResult = lastApiResponse.data;
+                } else if (lastApiResponse.data.data && Array.isArray(lastApiResponse.data.data)) {
+                    senderIdsPageResult = lastApiResponse.data.data;
+                } else if (lastApiResponse.data.senderIds && Array.isArray(lastApiResponse.data.senderIds)) {
+                    senderIdsPageResult = lastApiResponse.data.senderIds;
+                } else {
+                    senderIdsPageResult = [];
+                }
+                
+                const comparison = {
+                    messagesPage: {
+                        logic: "Filter for APPROVED, extract senderId strings",
+                        result: messagesPageResult,
+                        count: messagesPageResult.length
+                    },
+                    senderIdsPage: {
+                        logic: "Get all sender ID objects",
+                        result: senderIdsPageResult,
+                        count: senderIdsPageResult.length
+                    },
+                    analysis: {
+                        bothWork: messagesPageResult.length > 0 && senderIdsPageResult.length > 0,
+                        messagesPageWorking: messagesPageResult.length > 0,
+                        senderIdsPageWorking: senderIdsPageResult.length > 0,
+                        dataStructureCorrect: Array.isArray(senderIdsPageResult)
+                    }
+                };
+                
+                output.innerHTML = `<span class="info">📊 Comparison complete!</span>\n${JSON.stringify(comparison, null, 2)}`;
+            } catch (error) {
+                output.innerHTML = `<span class="error">Error comparing logic: ${error.message}</span>`;
+            }
+        }
+
+        async function testReduxAPI() {
+            const output = document.getElementById('redux-result');
+            output.innerHTML = '<span class="info">🔄 Testing Redux-style API call...</span>';
+            
+            if (!currentToken) {
+                output.innerHTML = '<span class="error">❌ Please login first!</span>';
+                return;
+            }
+            
+            try {
+                // Simulate the Redux API call
+                const response = await fetch('http://localhost:3000/api/sender-ids', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                // Process like Redux would
+                const reduxResult = {
+                    data: data,
+                    isLoading: false,
+                    error: response.ok ? null : data
+                };
+                
+                output.innerHTML = `<span class="success">✅ Redux-style API test complete!</span>\n${JSON.stringify(reduxResult, null, 2)}`;
+            } catch (error) {
+                output.innerHTML = `<span class="error">Redux API Error: ${error.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
