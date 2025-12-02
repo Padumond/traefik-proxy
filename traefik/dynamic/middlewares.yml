@@ -110,11 +110,11 @@ http:
           - X-Requested-With
           - Accept
           - Origin
+          - X-API-Key
         accessControlAllowOriginList:
-          # Replace with your actual frontend domains
-          - "https://app.yourdomain.com"
-          - "https://app1.yourdomain.com"
-          - "https://app3.yourdomain.com"
+          # MAS3NDI domains
+          - "https://mas3ndi.com"
+          - "https://www.mas3ndi.com"
         accessControlAllowCredentials: true
         accessControlMaxAge: 7200
         addVaryHeader: true
