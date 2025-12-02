@@ -8,11 +8,9 @@
 # Usage:
 #   1. Copy .env.example to .env and configure values
 #   2. Run migrations: docker compose run --rm mas3ndi-migrations
-#   3. Deploy: docker compose up -d --build
+#   3. Deploy: docker compose up -d
 #   4. View logs: docker compose logs -f
 # =============================================================================
-
-version: "3.8"
 
 services:
   # ===========================================================================
@@ -215,10 +213,7 @@ services:
   # DATABASE MIGRATIONS (One-time Job)
   # ===========================================================================
   mas3ndi-migrations:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: production
+    image: ghcr.io/padumond/mas3ndi/backend:latest
     container_name: mas3ndi-migrations
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@mas3ndi-db:5432/${POSTGRES_DB:-mas3ndi}?schema=public
