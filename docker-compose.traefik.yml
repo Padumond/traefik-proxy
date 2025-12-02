@@ -2,8 +2,6 @@
 # Run with: docker-compose -f docker-compose.traefik.yml up -d
 # Ensure .env file exists with required variables
 
-version: "3.8"
-
 services:
   traefik:
     image: traefik:v3.0
@@ -61,6 +59,5 @@ services:
 
 networks:
   traefik-network:
-    name: traefik-network
-    driver: bridge
+    external: true
 
