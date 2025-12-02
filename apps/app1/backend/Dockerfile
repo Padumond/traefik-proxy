@@ -1,17 +1,11 @@
-# =============================================================================
-# Mas3ndi Backend - Express.js + Prisma ORM Production Dockerfile
-# =============================================================================
-# Multi-stage build for optimized production image
-# Includes Prisma client generation and OpenSSL for database connections
-# =============================================================================
-
 ###################
 # BASE IMAGE
 ###################
+
 FROM node:20-alpine AS base
 
-# Install OpenSSL and wget for Prisma and health checks
-RUN apk add --no-cache openssl openssl-dev wget
+# Install OpenSSL and other necessary dependencies
+RUN apk add --no-cache openssl openssl-dev
 
 # Create app directory and set permissions
 WORKDIR /usr/src/app
@@ -20,6 +14,7 @@ RUN chown -R node:node /usr/src/app
 ###################
 # DEPENDENCIES
 ###################
+
 FROM base AS deps
 
 # Copy package files
@@ -35,7 +30,8 @@ RUN npx prisma generate
 ###################
 # BUILD FOR LOCAL DEVELOPMENT
 ###################
-FROM deps AS development
+
+FROM deps As development
 
 # Bundle app source
 COPY --chown=node:node . .
@@ -46,7 +42,8 @@ USER node
 ###################
 # BUILD FOR PRODUCTION
 ###################
-FROM deps AS build
+
+FROM deps As build
 
 # Copy source code
 COPY --chown=node:node . .
@@ -57,7 +54,7 @@ RUN npm run build
 # Install production dependencies only
 RUN npm ci --only=production && npm cache clean --force
 
-# Regenerate Prisma client for production
+# Generate Prisma client for production
 RUN npx prisma generate
 
 USER node
@@ -65,7 +62,8 @@ USER node
 ###################
 # PRODUCTION
 ###################
-FROM base AS production
+
+FROM base As production
 
 # Set production environment
 ENV NODE_ENV=production
@@ -74,14 +72,13 @@ ENV NODE_ENV=production
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
 COPY --chown=node:node --from=build /usr/src/app/prisma ./prisma
-COPY --chown=node:node --from=build /usr/src/app/package.json ./package.json
 
 # Copy the generated Prisma client
 COPY --chown=node:node --from=build /usr/src/app/node_modules/.prisma ./node_modules/.prisma
 
-# Health check (backend runs on port 3000)
+# Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -q --spider http://localhost:3000/health || exit 1
+  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Expose the port
 EXPOSE 3000
@@ -89,6 +86,5 @@ EXPOSE 3000
 # Set the user
 USER node
 
-# Start the server
-CMD ["node", "dist/server.js"]
-
+# Start the server using your project's entry point
+CMD [ "node", "dist/server.js" ]

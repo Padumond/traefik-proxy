@@ -1,0 +1,1108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  CLIENT
+}
+
+enum SenderIdStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  PROCESSING
+  SENDING
+  COMPLETED
+  PAUSED
+  CANCELLED
+  FAILED
+}
+
+enum OtpStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+  FAILED
+}
+
+enum OtpType {
+  PHONE_VERIFICATION
+  LOGIN_VERIFICATION
+  PASSWORD_RESET
+  TRANSACTION_VERIFICATION
+  CUSTOM
+}
+
+enum PricingTier {
+  BASIC
+  STANDARD
+  PREMIUM
+  ENTERPRISE
+  CUSTOM
+}
+
+enum MarkupType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  TIERED
+}
+
+enum BillingCycle {
+  PREPAID
+  POSTPAID_WEEKLY
+  POSTPAID_MONTHLY
+  POSTPAID_QUARTERLY
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  EXPIRED
+  REJECTED
+  UNKNOWN
+}
+
+enum WebhookStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  RETRYING
+  DISABLED
+}
+
+enum ReportType {
+  DELIVERY_SUMMARY
+  DETAILED_DELIVERY
+  ANALYTICS_REPORT
+  CUSTOM_REPORT
+}
+
+enum ReportFormat {
+  PDF
+  CSV
+  EXCEL
+  JSON
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+enum ScheduleStatus {
+  SCHEDULED
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  password      String
+  role          UserRole @default(CLIENT)
+  apiKey        String?  @unique
+  walletBalance Float    @default(0) // Monetary balance in Ghana Cedis (GHS)
+  smsCredits    Int      @default(0) // SMS credits for sending messages
+  avatar        String? // URL to user's avatar image
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  senderIds          SenderID[]
+  approvedSenderIds  SenderID[]          @relation("SenderIdApprover")
+  smsLogs            SmsLog[]
+  walletTransactions WalletTransaction[]
+  clientApis         ClientApi[]
+  messageTemplates   MessageTemplate[]
+  contacts           Contact[]
+  contactGroups      ContactGroup[]
+  smsTemplates       SmsTemplate[]
+  campaigns          Campaign[]
+  otps               Otp[]
+  otpRateLimits      OtpRateLimit[]
+  otpTemplates       OtpTemplate[]
+  userPricingTiers   UserPricingTier[]
+  markupRules        MarkupRule[]
+  profitTransactions ProfitTransaction[]
+  billingConfig      BillingConfig?
+  invoices           Invoice[]
+  creditTransactions CreditTransaction[]
+  deliveryReports    DeliveryReport[]
+  webhookConfigs     WebhookConfig[]
+  deliveryAnalytics  DeliveryAnalytics[]
+  scheduledReports   ScheduledReport[]
+  deliveryAlerts     DeliveryAlert[]
+  RefreshToken       RefreshToken[]
+  apiKeys            ApiKey[]
+  clientProfile      ClientProfile?
+  packagePurchases   PackagePurchase[]
+  apiUsageLogs       ApiUsageLog[]
+  payments           Payment[]
+  smsCampaigns       SmsCampaign[]
+  userStats          UserStats[]
+  dailyReports       DailyReport[]
+
+  @@map("users")
+}
+
+model ClientProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Company Information
+  companyName    String
+  phone          String
+  website        String?
+  businessType   String
+  expectedVolume String
+  useCase        String
+
+  // Onboarding Status
+  onboardingStatus String @default("REGISTRATION") // REGISTRATION, VERIFICATION, APPROVAL, SETUP, COMPLETE
+  tier             String @default("FREE") // FREE, BASIC, PREMIUM, ENTERPRISE
+
+  // Approval Information
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
+  completedAt     DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("client_profiles")
+}
+
+model ApiUsageLog {
+  id       String @id @default(uuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKeyId String
+  apiKey   ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  // Request Information
+  endpoint     String
+  method       String
+  statusCode   Int
+  responseTime Int // in milliseconds
+  cost         Float  @default(0)
+
+  // Additional Metadata
+  userAgent    String?
+  ipAddress    String?
+  requestSize  Int? // in bytes
+  responseSize Int? // in bytes
+
+  // Timestamp
+  timestamp DateTime @default(now())
+
+  @@index([userId, timestamp])
+  @@index([apiKeyId, timestamp])
+  @@index([endpoint, timestamp])
+  @@index([timestamp])
+  @@map("api_usage_logs")
+}
+
+model Payment {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Payment Information
+  paymentIntentId String  @unique
+  amount          Float
+  currency        String  @default("USD")
+  status          String  @default("PENDING") // PENDING, COMPLETED, FAILED, REFUNDED, DISPUTED
+  paymentMethod   String // stripe, paypal, etc.
+  description     String?
+
+  // Stripe/PayPal specific fields
+  stripeChargeId String?
+  paypalOrderId  String?
+
+  // Refund Information
+  refundId     String?
+  refundAmount Float?
+  refundReason String?
+
+  // Failure Information
+  failureReason String?
+
+  // Metadata
+  metadata Json?
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([userId, status])
+  @@index([paymentIntentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+model MessageTemplate {
+  id             String   @id @default(uuid())
+  name           String
+  content        String
+  userId         String
+  category       String   @default("general")
+  variables      String[] @default([])
+  isPublic       Boolean  @default(false)
+  tags           String[] @default([])
+  characterCount Int      @default(0)
+  estimatedCost  Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  smsLogs   SmsLog[]
+  campaigns SmsCampaign[]
+
+  @@unique([userId, name])
+  @@map("message_templates")
+}
+
+model ContactGroup {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User             @relation(fields: [userId], references: [id])
+  contacts  ContactToGroup[]
+  campaigns Campaign[]
+}
+
+model Contact {
+  id           String   @id @default(uuid())
+  name         String
+  firstName    String?
+  lastName     String?
+  phone        String
+  email        String?
+  tags         String[] // Array of tags for filtering
+  customFields Json? // Flexible custom fields
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user   User             @relation(fields: [userId], references: [id])
+  groups ContactToGroup[]
+
+  @@unique([userId, phone])
+}
+
+model ContactToGroup {
+  id        String @id @default(uuid())
+  contactId String
+  groupId   String
+
+  contact Contact      @relation(fields: [contactId], references: [id])
+  group   ContactGroup @relation(fields: [groupId], references: [id])
+
+  @@unique([contactId, groupId])
+}
+
+model SenderID {
+  id              String         @id @default(uuid())
+  userId          String
+  senderId        String
+  status          SenderIdStatus @default(PENDING)
+  purpose         String?
+  sampleMessage   String?
+  companyName     String?
+  submittedAt     DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
+
+  // Manual approval workflow fields
+  consentFormPath         String? // Path to uploaded consent form file
+  consentFormOriginalName String? // Original filename of uploaded consent form
+  consentFormMimeType     String? // MIME type of uploaded file
+  consentFormSize         Int? // File size in bytes
+  approvedBy              String? // ID of admin who approved/rejected
+  adminNotes              String? // Notes from admin during approval process
+  emailNotificationSent   Boolean @default(false) // Track if notification email was sent
+
+  // Relations
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approver User?    @relation("SenderIdApprover", fields: [approvedBy], references: [id])
+  smsLogs  SmsLog[]
+
+  @@unique([userId, senderId])
+  @@map("sender_ids")
+}
+
+model SmsLog {
+  id             String          @id @default(uuid())
+  userId         String
+  senderIdId     String?
+  templateId     String?
+  campaignId     String?
+  message        String
+  recipients     String[] // Array of phone numbers
+  providerRef    String? // Reference ID from upstream provider
+  status         MessageStatus   @default(PENDING)
+  cost           Float
+  sentAt         DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  scheduledFor   DateTime? // When the message should be sent
+  isScheduled    Boolean         @default(false)
+  scheduleStatus ScheduleStatus? // Status of scheduled message
+  jobId          String? // ID of the scheduled job in the queue
+
+  // Relations
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderId       SenderID?        @relation(fields: [senderIdId], references: [id], onDelete: SetNull)
+  deliveryReport DeliveryReport?
+  template       MessageTemplate? @relation(fields: [templateId], references: [id])
+  campaign       SmsCampaign?     @relation(fields: [campaignId], references: [id])
+
+  @@map("sms_logs")
+}
+
+model WalletTransaction {
+  id                    String          @id @default(uuid())
+  userId                String
+  type                  TransactionType
+  amount                Float
+  description           String?
+  status                String          @default("COMPLETED") // PENDING, COMPLETED, CANCELLED
+  reference             String?
+  metadata              Json?
+  externalTransactionId String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallet_transactions")
+}
+
+// SMS Campaign Models
+model SmsTemplate {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  content     String
+  variables   String[] // Array of variable names like ["firstName", "lastName"]
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+
+  @@unique([userId, name])
+  @@map("sms_templates")
+}
+
+model Campaign {
+  id              String         @id @default(uuid())
+  userId          String
+  name            String
+  message         String
+  templateId      String?
+  contactGroupId  String?
+  senderId        String
+  status          CampaignStatus @default(DRAFT)
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  totalRecipients Int            @default(0)
+  sentCount       Int            @default(0)
+  failedCount     Int            @default(0)
+  estimatedCost   Float          @default(0)
+  actualCost      Float          @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template     SmsTemplate?  @relation(fields: [templateId], references: [id])
+  contactGroup ContactGroup? @relation(fields: [contactGroupId], references: [id])
+
+  @@map("campaigns")
+}
+
+// OTP Management Models
+model Otp {
+  id          String    @id @default(uuid())
+  userId      String
+  phoneNumber String
+  code        String
+  type        OtpType   @default(PHONE_VERIFICATION)
+  status      OtpStatus @default(PENDING)
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json? // Additional data like purpose, reference ID
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verifications OtpVerificationAttempt[]
+
+  @@index([phoneNumber, status])
+  @@index([userId, type])
+  @@index([expiresAt])
+  @@map("otps")
+}
+
+model OtpVerificationAttempt {
+  id          String   @id @default(uuid())
+  otpId       String
+  code        String
+  success     Boolean
+  ipAddress   String?
+  userAgent   String?
+  attemptedAt DateTime @default(now())
+
+  // Relations
+  otp Otp @relation(fields: [otpId], references: [id], onDelete: Cascade)
+
+  @@map("otp_verification_attempts")
+}
+
+model OtpRateLimit {
+  id             String    @id @default(uuid())
+  identifier     String // Phone number or IP address
+  identifierType String // 'phone' or 'ip'
+  userId         String?
+  requestCount   Int       @default(1)
+  windowStart    DateTime  @default(now())
+  blockedUntil   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([identifier, identifierType])
+  @@index([identifier, identifierType])
+  @@index([windowStart])
+  @@map("otp_rate_limits")
+}
+
+model OtpTemplate {
+  id            String   @id @default(uuid())
+  userId        String
+  name          String
+  type          OtpType
+  message       String // Template with {{code}} placeholder
+  codeLength    Int      @default(6)
+  expiryMinutes Int      @default(5)
+  maxAttempts   Int      @default(3)
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@index([userId, type])
+  @@map("otp_templates")
+}
+
+// Simple SMS Packages for Clients
+model SmsPackage {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  credits     Int // Number of SMS credits
+  price       Float // Price in local currency (e.g., GHS)
+  currency    String   @default("GHS") // Currency code
+  isActive    Boolean  @default(true)
+  isPopular   Boolean  @default(false) // For highlighting popular packages
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  purchases PackagePurchase[]
+
+  @@map("sms_packages")
+}
+
+model PackagePurchase {
+  id               String   @id @default(uuid())
+  userId           String
+  packageId        String
+  creditsReceived  Int
+  amountPaid       Float
+  currency         String
+  paymentMethod    String // 'paystack', 'stripe', etc.
+  paymentReference String? // Payment gateway reference
+  status           String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package SmsPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@map("package_purchases")
+}
+
+// Pricing & Reseller Models (Keep existing for admin use)
+model PricingTierConfig {
+  id              String      @id @default(uuid())
+  name            String      @unique
+  tier            PricingTier
+  basePricePerSms Float // Base cost per SMS in USD
+  description     String?
+  minVolume       Int         @default(0)
+  maxVolume       Int? // null for unlimited
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  userPricingTiers UserPricingTier[]
+
+  @@map("pricing_tier_configs")
+}
+
+model UserPricingTier {
+  id            String    @id @default(uuid())
+  userId        String
+  pricingTierId String
+  customPricing Json? // Custom pricing overrides
+  effectiveFrom DateTime  @default(now())
+  effectiveTo   DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pricingTier PricingTierConfig @relation(fields: [pricingTierId], references: [id])
+
+  @@unique([userId, pricingTierId])
+  @@map("user_pricing_tiers")
+}
+
+model MarkupRule {
+  id          String     @id @default(uuid())
+  userId      String
+  name        String
+  markupType  MarkupType
+  markupValue Float // Percentage or fixed amount
+  minVolume   Int        @default(0)
+  maxVolume   Int? // null for unlimited
+  countryCode String? // null for all countries
+  smsType     String? // null for all types (SMS, OTP, etc.)
+  priority    Int        @default(0) // Higher priority rules override lower
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([priority])
+  @@map("markup_rules")
+}
+
+model ProfitTransaction {
+  id              String   @id @default(uuid())
+  userId          String
+  transactionId   String // Reference to SMS transaction
+  transactionType String // 'SMS', 'OTP', 'BULK_SMS'
+  baseCost        Float // Cost from provider (Arkessel)
+  clientCharge    Float // Amount charged to client
+  profit          Float // clientCharge - baseCost
+  markupApplied   Float // Markup percentage/amount used
+  volume          Int // Number of SMS
+  countryCode     String?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([transactionType])
+  @@map("profit_transactions")
+}
+
+model BillingConfig {
+  id                    String       @id @default(uuid())
+  userId                String       @unique
+  billingCycle          BillingCycle @default(PREPAID)
+  creditLimit           Float        @default(0)
+  autoRecharge          Boolean      @default(false)
+  autoRechargeAmount    Float        @default(0)
+  autoRechargeThreshold Float        @default(0)
+  paymentTerms          Int          @default(30) // Days
+  invoicePrefix         String       @default("INV")
+  nextInvoiceNumber     Int          @default(1)
+  isActive              Boolean      @default(true)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+
+  @@map("billing_configs")
+}
+
+model Invoice {
+  id              String        @id @default(uuid())
+  userId          String
+  billingConfigId String
+  invoiceNumber   String        @unique
+  status          InvoiceStatus @default(DRAFT)
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime
+  paidDate        DateTime?
+  subtotal        Float
+  taxAmount       Float         @default(0)
+  totalAmount     Float
+  currency        String        @default("USD")
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  billingConfig BillingConfig     @relation(fields: [billingConfigId], references: [id])
+  lineItems     InvoiceLineItem[]
+
+  @@index([userId, status])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  description String
+  quantity    Int
+  unitPrice   Float
+  totalPrice  Float
+  metadata    Json? // Additional data like SMS count, period, etc.
+  createdAt   DateTime @default(now())
+
+  // Relations
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_line_items")
+}
+
+model CreditTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String // 'PURCHASE', 'USAGE', 'REFUND', 'ADJUSTMENT'
+  amount      Float
+  balance     Float // Balance after transaction
+  description String
+  referenceId String? // Reference to related transaction
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type])
+  @@map("credit_transactions")
+}
+
+// Delivery Tracking & Analytics Models
+model DeliveryReport {
+  id              String         @id @default(uuid())
+  userId          String
+  smsLogId        String         @unique
+  messageId       String // External provider message ID
+  status          DeliveryStatus @default(PENDING)
+  deliveredAt     DateTime?
+  failureReason   String?
+  networkOperator String?
+  countryCode     String?
+  cost            Float?
+  metadata        Json? // Additional delivery data
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  smsLog        SmsLog                  @relation(fields: [smsLogId], references: [id], onDelete: Cascade)
+  statusHistory DeliveryStatusHistory[]
+
+  @@index([userId, status])
+  @@index([messageId])
+  @@index([deliveredAt])
+  @@map("delivery_reports")
+}
+
+model DeliveryStatusHistory {
+  id               String         @id @default(uuid())
+  deliveryReportId String
+  status           DeliveryStatus
+  timestamp        DateTime       @default(now())
+  source           String? // 'webhook', 'api', 'manual'
+  metadata         Json?
+  createdAt        DateTime       @default(now())
+
+  // Relations
+  deliveryReport DeliveryReport @relation(fields: [deliveryReportId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryReportId, timestamp])
+  @@map("delivery_status_history")
+}
+
+model WebhookConfig {
+  id            String   @id @default(uuid())
+  userId        String
+  name          String
+  url           String
+  events        String[] // Array of event types to subscribe to
+  isActive      Boolean  @default(true)
+  secret        String? // For webhook signature verification
+  retryAttempts Int      @default(3)
+  retryDelay    Int      @default(60) // seconds
+  headers       Json? // Custom headers
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  webhookLogs WebhookLog[]
+
+  @@unique([userId, name])
+  @@index([userId, isActive])
+  @@map("webhook_configs")
+}
+
+model WebhookLog {
+  id              String        @id @default(uuid())
+  webhookConfigId String
+  eventType       String
+  payload         Json
+  status          WebhookStatus @default(PENDING)
+  httpStatus      Int?
+  response        String?
+  attempts        Int           @default(0)
+  lastAttemptAt   DateTime?
+  nextRetryAt     DateTime?
+  deliveredAt     DateTime?
+  createdAt       DateTime      @default(now())
+
+  // Relations
+  webhookConfig WebhookConfig @relation(fields: [webhookConfigId], references: [id], onDelete: Cascade)
+
+  @@index([webhookConfigId, status])
+  @@index([eventType])
+  @@index([nextRetryAt])
+  @@map("webhook_logs")
+}
+
+model DeliveryAnalytics {
+  id              String   @id @default(uuid())
+  userId          String
+  date            DateTime // Date for daily aggregation
+  totalSent       Int      @default(0)
+  totalDelivered  Int      @default(0)
+  totalFailed     Int      @default(0)
+  totalPending    Int      @default(0)
+  deliveryRate    Float    @default(0)
+  avgDeliveryTime Float? // Average delivery time in seconds
+  totalCost       Float    @default(0)
+  countryCode     String? // null for global stats
+  serviceType     String? // 'SMS', 'OTP', 'BULK_SMS'
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, countryCode, serviceType])
+  @@index([userId, date])
+  @@index([countryCode])
+  @@map("delivery_analytics")
+}
+
+model ScheduledReport {
+  id         String       @id @default(uuid())
+  userId     String
+  name       String
+  reportType ReportType
+  format     ReportFormat @default(PDF)
+  schedule   String // Cron expression
+  filters    Json? // Report filters
+  recipients String[] // Email addresses
+  isActive   Boolean      @default(true)
+  lastRunAt  DateTime?
+  nextRunAt  DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  // Relations
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reportRuns ReportRun[]
+
+  @@unique([userId, name])
+  @@index([userId, isActive])
+  @@index([nextRunAt])
+  @@map("scheduled_reports")
+}
+
+model ReportRun {
+  id                String    @id @default(uuid())
+  scheduledReportId String
+  status            String // 'RUNNING', 'COMPLETED', 'FAILED'
+  startedAt         DateTime  @default(now())
+  completedAt       DateTime?
+  filePath          String? // Path to generated report file
+  fileSize          Int? // File size in bytes
+  recordCount       Int? // Number of records in report
+  errorMessage      String?
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+
+  // Relations
+  scheduledReport ScheduledReport @relation(fields: [scheduledReportId], references: [id], onDelete: Cascade)
+
+  @@index([scheduledReportId, startedAt])
+  @@index([status])
+  @@map("report_runs")
+}
+
+model DeliveryAlert {
+  id                   String    @id @default(uuid())
+  userId               String
+  name                 String
+  alertType            String // 'LOW_DELIVERY_RATE', 'HIGH_FAILURE_RATE', 'COST_THRESHOLD'
+  threshold            Float // Threshold value
+  isActive             Boolean   @default(true)
+  lastTriggeredAt      DateTime?
+  notificationChannels String[] // 'EMAIL', 'SMS', 'WEBHOOK'
+  metadata             Json?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@index([userId, isActive])
+  @@map("delivery_alerts")
+}
+
+model ClientApi {
+  id        String   @id @default(uuid())
+  userId    String
+  route     String // e.g., "/v1/send-sms"
+  mappedTo  String // internal route
+  rateLimit Int      @default(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, route])
+  @@map("client_apis")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  revoked    Boolean  @default(false)
+  replacedBy String? // For rotation tracking
+
+  @@index([userId])
+}
+
+model ApiKey {
+  id      String @id @default(uuid())
+  name    String // User-friendly name for the API key
+  keyHash String @unique // Hashed version of the API key
+  prefix  String // First 8 characters for display (e.g., "msk_prod_")
+  suffix  String // Last 6 characters for display
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Permissions and restrictions
+  permissions Json     @default("[]") // Array of permissions
+  ipWhitelist String[] @default([]) // Allowed IP addresses
+  rateLimit   Int      @default(1000) // Requests per hour
+
+  // Status and metadata
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  lastUsedIp String?
+  usageCount Int       @default(0)
+
+  // Lifecycle
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  usageLogs    ApiKeyUsageLog[]
+  apiUsageLogs ApiUsageLog[]
+
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+model ApiKeyUsageLog {
+  id       String @id @default(uuid())
+  apiKeyId String
+  apiKey   ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  // Request details
+  endpoint  String
+  method    String
+  ipAddress String
+  userAgent String?
+
+  // Response details
+  statusCode   Int
+  responseTime Int // in milliseconds
+
+  // Metadata
+  requestId String?
+  timestamp DateTime @default(now())
+
+  @@index([apiKeyId])
+  @@index([timestamp])
+  @@map("api_key_usage_logs")
+}
+
+model SmsCampaign {
+  id              String         @id @default(uuid())
+  userId          String
+  name            String
+  templateId      String?
+  message         String
+  senderId        String
+  recipients      String[]
+  contactGroupIds String[]       @default([])
+  scheduledAt     DateTime?
+  variables       Json?
+  campaignType    CampaignType   @default(IMMEDIATE)
+  recurringConfig Json?
+  estimatedCost   Float          @default(0)
+  actualCost      Float          @default(0)
+  status          CampaignStatus @default(SCHEDULED)
+  totalRecipients Int            @default(0)
+  sentCount       Int            @default(0)
+  failedCount     Int            @default(0)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  failureReason   String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template MessageTemplate? @relation(fields: [templateId], references: [id])
+  smsLogs  SmsLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("sms_campaigns")
+}
+
+model UserStats {
+  id                String   @id @default(uuid())
+  userId            String
+  date              DateTime
+  messagesDelivered Int      @default(0)
+  messagesFailed    Int      @default(0)
+  totalSpent        Float    @default(0)
+  createdAt         DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@map("user_stats")
+}
+
+model DailyReport {
+  id                String   @id @default(uuid())
+  userId            String
+  date              DateTime
+  totalMessages     Int      @default(0)
+  deliveredMessages Int      @default(0)
+  failedMessages    Int      @default(0)
+  totalCost         Float    @default(0)
+  deliveryRate      Float    @default(0)
+  createdAt         DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@map("daily_reports")
+}
+
+enum CampaignType {
+  IMMEDIATE
+  SCHEDULED
+  RECURRING
+}
