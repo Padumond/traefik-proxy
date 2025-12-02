@@ -20,7 +20,7 @@ services:
   # ===========================================================================
   mas3ndi-frontend:
     # Production: Use pre-built image from registry
-    image: ${FRONTEND_IMAGE:-ghcr.io/${GITHUB_REPOSITORY:-your-org/traefik-proxy}/mas3ndi-frontend:latest}
+    image: ${FRONTEND_IMAGE:-ghcr.io/padumond/mas3ndi/frontend:latest}
     container_name: mas3ndi-frontend
     restart: unless-stopped
     environment:
@@ -74,7 +74,7 @@ services:
   # ===========================================================================
   mas3ndi-backend:
     # Production: Use pre-built image from registry
-    image: ${BACKEND_IMAGE:-ghcr.io/${GITHUB_REPOSITORY:-your-org/traefik-proxy}/mas3ndi-backend:latest}
+    image: ${BACKEND_IMAGE:-ghcr.io/padumond/mas3ndi/backend:latest}
     container_name: mas3ndi-backend
     restart: unless-stopped
     environment:

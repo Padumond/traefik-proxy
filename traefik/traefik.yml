@@ -39,7 +39,7 @@ entryPoints:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: admin@yourdomain.com # Replace with your email
+      email: dev@schorlarix.com
       storage: /letsencrypt/acme.json
       httpChallenge:
         entryPoint: web
