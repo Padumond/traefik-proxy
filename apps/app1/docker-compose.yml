@@ -1,0 +1,244 @@
+# =============================================================================
+# MAS3NDI: Next.js 15 (Frontend) + Express/Prisma (Backend) + PostgreSQL + Redis
+# =============================================================================
+# SMS Gateway Platform - Production Deployment with Traefik
+#
+# Domains: mas3ndi.com (frontend), api.mas3ndi.com (backend)
+#
+# Usage:
+#   1. Copy .env.example to .env and configure values
+#   2. Run migrations: docker compose run --rm mas3ndi-migrations
+#   3. Deploy: docker compose up -d --build
+#   4. View logs: docker compose logs -f
+# =============================================================================
+
+version: "3.8"
+
+services:
+  # ===========================================================================
+  # FRONTEND - Next.js 15 (Standalone Mode)
+  # ===========================================================================
+  mas3ndi-frontend:
+    # Production: Use pre-built image from registry
+    image: ${FRONTEND_IMAGE:-ghcr.io/${GITHUB_REPOSITORY:-your-org/traefik-proxy}/mas3ndi-frontend:latest}
+    container_name: mas3ndi-frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.mas3ndi.com}
+      - NEXT_TELEMETRY_DISABLED=1
+    networks:
+      - traefik-network
+      - mas3ndi-internal
+    depends_on:
+      mas3ndi-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      # Main frontend routing
+      - "traefik.http.routers.mas3ndi-frontend.rule=Host(`${MAS3NDI_DOMAIN:-mas3ndi.com}`)"
+      - "traefik.http.routers.mas3ndi-frontend.entrypoints=websecure"
+      - "traefik.http.routers.mas3ndi-frontend.tls=true"
+      - "traefik.http.routers.mas3ndi-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.mas3ndi-frontend.service=mas3ndi-frontend-svc"
+      - "traefik.http.services.mas3ndi-frontend-svc.loadbalancer.server.port=3000"
+      # Apply security middlewares
+      - "traefik.http.routers.mas3ndi-frontend.middlewares=secure-headers@file,compress@file"
+      # WWW redirect to non-www
+      - "traefik.http.routers.mas3ndi-www.rule=Host(`www.${MAS3NDI_DOMAIN:-mas3ndi.com}`)"
+      - "traefik.http.routers.mas3ndi-www.entrypoints=websecure"
+      - "traefik.http.routers.mas3ndi-www.tls=true"
+      - "traefik.http.routers.mas3ndi-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.mas3ndi-www.middlewares=mas3ndi-www-redirect"
+      - "traefik.http.middlewares.mas3ndi-www-redirect.redirectregex.regex=^https://www\\.(.+)"
+      - "traefik.http.middlewares.mas3ndi-www-redirect.redirectregex.replacement=https://$${1}"
+      - "traefik.http.middlewares.mas3ndi-www-redirect.redirectregex.permanent=true"
+
+  # ===========================================================================
+  # BACKEND API - Express.js + Prisma ORM
+  # ===========================================================================
+  mas3ndi-backend:
+    # Production: Use pre-built image from registry
+    image: ${BACKEND_IMAGE:-ghcr.io/${GITHUB_REPOSITORY:-your-org/traefik-proxy}/mas3ndi-backend:latest}
+    container_name: mas3ndi-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Database
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@mas3ndi-db:5432/${POSTGRES_DB:-mas3ndi}?schema=public
+      # Redis
+      - REDIS_URL=redis://mas3ndi-redis:6379
+      # JWT Authentication
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1d}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-7d}
+      # Arkessel SMS Gateway
+      - ARKESSEL_API_KEY=${ARKESSEL_API_KEY}
+      - ARKESSEL_API_URL=${ARKESSEL_API_URL:-https://sms.arkessel.com/api/v2}
+      # CORS Configuration
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://mas3ndi.com,https://www.mas3ndi.com}
+      # Rate Limiting
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-900000}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-100}
+      # Cloudinary (File Uploads)
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      # Paystack (Payments)
+      - PAYSTACK_SECRET_KEY=${PAYSTACK_SECRET_KEY}
+      - PAYSTACK_PUBLIC_KEY=${PAYSTACK_PUBLIC_KEY}
+      # Email Configuration
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM=${SMTP_FROM:-noreply@mas3ndi.com}
+    networks:
+      - traefik-network
+      - mas3ndi-internal
+    depends_on:
+      mas3ndi-db:
+        condition: service_healthy
+      mas3ndi-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+          cpus: '2.0'
+        reservations:
+          memory: 1024M
+          cpus: '1.0'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      # Backend API routing
+      - "traefik.http.routers.mas3ndi-backend.rule=Host(`api.${MAS3NDI_DOMAIN:-mas3ndi.com}`)"
+      - "traefik.http.routers.mas3ndi-backend.entrypoints=websecure"
+      - "traefik.http.routers.mas3ndi-backend.tls=true"
+      - "traefik.http.routers.mas3ndi-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.mas3ndi-backend.service=mas3ndi-backend-svc"
+      - "traefik.http.services.mas3ndi-backend-svc.loadbalancer.server.port=3000"
+      # Apply security middlewares
+      - "traefik.http.routers.mas3ndi-backend.middlewares=cors-headers@file,rate-limit-api@file,secure-headers@file"
+
+  # ===========================================================================
+  # DATABASE - PostgreSQL 16
+  # ===========================================================================
+  mas3ndi-db:
+    image: postgres:16-alpine
+    container_name: mas3ndi-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-mas3ndi}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - mas3ndi-db-data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+      - ./backups:/backups
+    networks:
+      - mas3ndi-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-mas3ndi}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # ===========================================================================
+  # CACHE & QUEUE - Redis 7
+  # ===========================================================================
+  mas3ndi-redis:
+    image: redis:7-alpine
+    container_name: mas3ndi-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    volumes:
+      - mas3ndi-redis-data:/data
+    networks:
+      - mas3ndi-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+
+  # ===========================================================================
+  # DATABASE MIGRATIONS (One-time Job)
+  # ===========================================================================
+  mas3ndi-migrations:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: mas3ndi-migrations
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@mas3ndi-db:5432/${POSTGRES_DB:-mas3ndi}?schema=public
+    networks:
+      - mas3ndi-internal
+    depends_on:
+      mas3ndi-db:
+        condition: service_healthy
+    command: ["npx", "prisma", "migrate", "deploy"]
+    restart: "no"
+    profiles:
+      - migrations
+
+networks:
+  traefik-network:
+    external: true
+  mas3ndi-internal:
+    driver: bridge
+
+volumes:
+  mas3ndi-db-data:
+  mas3ndi-redis-data:
+

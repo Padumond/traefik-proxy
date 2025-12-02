@@ -1,0 +1,8 @@
+# This directory stores database backups
+# Backups are organized by type: daily, weekly, monthly
+# 
+# Retention policy:
+# - Daily: 7 days
+# - Weekly: 30 days
+# - Monthly: 365 days
+

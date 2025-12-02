@@ -1,0 +1,66 @@
+# Traefik Reverse Proxy - Production Configuration
+# Run with: docker-compose -f docker-compose.traefik.yml up -d
+# Ensure .env file exists with required variables
+
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8082:8082"  # Metrics endpoint for Prometheus
+    environment:
+      - TZ=${TZ:-UTC}
+    volumes:
+      # Traefik configuration
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      # Docker socket for auto-discovery
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # SSL certificates storage
+      - ./letsencrypt:/letsencrypt
+      # Logs
+      - ./logs/traefik:/var/log/traefik
+    networks:
+      - traefik-network
+    # Health check for auto-restart on failure
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Resource limits to prevent runaway usage
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.50'
+        reservations:
+          memory: 128M
+    labels:
+      # Enable Traefik for this container
+      - "traefik.enable=true"
+
+      # Traefik Dashboard Configuration
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`${DASHBOARD_HOST:-traefik.localhost}`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls=true"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+
+      # Dashboard authentication and security
+      - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth,secure-headers@file,rate-limit@file"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${DASHBOARD_CREDENTIALS:-admin:$$apr1$$placeholder}"
+
+networks:
+  traefik-network:
+    name: traefik-network
+    driver: bridge
+

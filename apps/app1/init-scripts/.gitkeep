@@ -1,0 +1,4 @@
+# Place PostgreSQL initialization scripts here
+# Files with .sql or .sh extensions will be executed on first container start
+# Example: 01-create-extensions.sql, 02-seed-data.sql
+

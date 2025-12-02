@@ -1,0 +1,6 @@
+# Place Grafana dashboard JSON files here
+# Recommended dashboards to download from grafana.com:
+# - Traefik Official: https://grafana.com/grafana/dashboards/17346
+# - Node Exporter Full: https://grafana.com/grafana/dashboards/1860
+# - Docker and System Monitoring: https://grafana.com/grafana/dashboards/893
+

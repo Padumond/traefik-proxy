@@ -1,0 +1,88 @@
+# Traefik Static Configuration
+# This file contains the main Traefik configuration
+
+api:
+  dashboard: true
+  insecure: false # Set to true for development only
+
+# Enable ping endpoint for health checks
+ping:
+  entryPoint: traefik
+
+# Entry Points - Define how traffic enters Traefik
+entryPoints:
+  web:
+    address: ":80"
+    # Redirect all HTTP to HTTPS in production
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+
+  # Internal entrypoint for Traefik health checks
+  traefik:
+    address: ":8080"
+
+  # Metrics entrypoint for Prometheus
+  metrics:
+    address: ":8082"
+
+# Certificate Resolvers - Automatic SSL/TLS with Let's Encrypt
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: admin@yourdomain.com # Replace with your email
+      storage: /letsencrypt/acme.json
+      httpChallenge:
+        entryPoint: web
+
+# Providers - Where Traefik gets its routing configuration
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false # Only route containers with traefik.enable=true
+    network: traefik-network # Default network for container discovery
+    watch: true
+
+  # File provider for dynamic configuration (optional)
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# Metrics - Prometheus integration
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
+
+# Logging
+log:
+  level: INFO
+  format: json # JSON format for better log parsing
+
+# Access logs (optional but recommended)
+accessLog:
+  filePath: /var/log/traefik/access.log
+  bufferingSize: 100
+  format: json
+  filters:
+    statusCodes:
+      - "200-299"
+      - "400-599"
+    retryAttempts: true
+    minDuration: "10ms"

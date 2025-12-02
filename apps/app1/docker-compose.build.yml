@@ -1,0 +1,26 @@
+# =============================================================================
+# Mas3ndi Build Override
+# =============================================================================
+# Use this file for LOCAL BUILDS only (development/testing)
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml build
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d
+# =============================================================================
+
+services:
+  mas3ndi-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.mas3ndi.com}
+    image: mas3ndi-frontend:local
+
+  mas3ndi-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    image: mas3ndi-backend:local
+

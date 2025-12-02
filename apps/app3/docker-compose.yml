@@ -1,0 +1,66 @@
+# Application 3: app3.com
+# Frontend + Backend with API subdomain
+# Run with: docker-compose -f apps/app3/docker-compose.yml up -d
+
+version: "3.8"
+
+services:
+  # Frontend Container - Serves app3.com
+  app3-frontend:
+    image: nginx:alpine  # Replace with your frontend image
+    container_name: app3-frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - traefik-network
+      - app3-internal
+    labels:
+      - "traefik.enable=true"
+      
+      # Router for main domain
+      - "traefik.http.routers.app3-frontend.rule=Host(`app3.com`) || Host(`www.app3.com`)"
+      - "traefik.http.routers.app3-frontend.entrypoints=websecure"
+      - "traefik.http.routers.app3-frontend.tls=true"
+      - "traefik.http.routers.app3-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.app3-frontend.service=app3-frontend-svc"
+      
+      # Service definition
+      - "traefik.http.services.app3-frontend-svc.loadbalancer.server.port=80"
+      
+      # Apply middlewares
+      - "traefik.http.routers.app3-frontend.middlewares=secure-headers@file,compress@file"
+
+  # Backend Container - Serves api.app3.com
+  app3-backend:
+    build: ./backend  # Example using Dockerfile
+    container_name: app3-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+    networks:
+      - traefik-network
+      - app3-internal
+    labels:
+      - "traefik.enable=true"
+      
+      # Router for API subdomain
+      - "traefik.http.routers.app3-backend.rule=Host(`api.app3.com`)"
+      - "traefik.http.routers.app3-backend.entrypoints=websecure"
+      - "traefik.http.routers.app3-backend.tls=true"
+      - "traefik.http.routers.app3-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.app3-backend.service=app3-backend-svc"
+      
+      # Service definition
+      - "traefik.http.services.app3-backend-svc.loadbalancer.server.port=8080"
+      
+      # Apply middlewares
+      - "traefik.http.routers.app3-backend.middlewares=cors-headers@file,rate-limit@file"
+
+networks:
+  traefik-network:
+    external: true
+  app3-internal:
+    driver: bridge
+

@@ -1,0 +1,189 @@
+# =============================================================================
+# APP2: React.js (Frontend) + NestJS (Backend) + PostgreSQL + Redis
+# =============================================================================
+# Domains: app2.com (frontend), api.app2.com (backend)
+#
+# Usage:
+#   docker compose up -d
+#   docker compose logs -f
+# =============================================================================
+
+version: "3.8"
+
+services:
+  # ===========================================================================
+  # FRONTEND - React.js (Nginx serving static build)
+  # ===========================================================================
+  app2-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-https://api.app2.com}
+    container_name: app2-frontend
+    restart: unless-stopped
+    networks:
+      - traefik-network
+      - app2-internal
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+
+      # Main frontend routing
+      - "traefik.http.routers.app2-frontend.rule=Host(`${APP2_DOMAIN:-app2.com}`)"
+      - "traefik.http.routers.app2-frontend.entrypoints=websecure"
+      - "traefik.http.routers.app2-frontend.tls=true"
+      - "traefik.http.routers.app2-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.app2-frontend.service=app2-frontend-svc"
+      - "traefik.http.services.app2-frontend-svc.loadbalancer.server.port=80"
+
+      # Apply security middlewares
+      - "traefik.http.routers.app2-frontend.middlewares=secure-headers@file,compress@file"
+
+      # WWW redirect to non-www
+      - "traefik.http.routers.app2-www.rule=Host(`www.${APP2_DOMAIN:-app2.com}`)"
+      - "traefik.http.routers.app2-www.entrypoints=websecure"
+      - "traefik.http.routers.app2-www.tls=true"
+      - "traefik.http.routers.app2-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.app2-www.middlewares=app2-www-redirect"
+      - "traefik.http.middlewares.app2-www-redirect.redirectregex.regex=^https://www\\.(.+)"
+      - "traefik.http.middlewares.app2-www-redirect.redirectregex.replacement=https://$${1}"
+      - "traefik.http.middlewares.app2-www-redirect.redirectregex.permanent=true"
+
+  # ===========================================================================
+  # BACKEND API - NestJS
+  # ===========================================================================
+  app2-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: app2-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+
+      # Database
+      - DATABASE_HOST=app2-db
+      - DATABASE_PORT=5432
+      - DATABASE_USER=${DB_USER:-app2user}
+      - DATABASE_PASSWORD=${DB_PASSWORD:-app2password}
+      - DATABASE_NAME=${DB_NAME:-app2db}
+      - DATABASE_URL=postgresql://${DB_USER:-app2user}:${DB_PASSWORD:-app2password}@app2-db:5432/${DB_NAME:-app2db}
+
+      # Redis
+      - REDIS_HOST=app2-redis
+      - REDIS_PORT=6379
+      - REDIS_URL=redis://app2-redis:6379
+
+      # Security
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-me}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://app2.com}
+
+    networks:
+      - traefik-network
+      - app2-internal
+    depends_on:
+      app2-db:
+        condition: service_healthy
+      app2-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.50'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+
+      # Backend API routing
+      - "traefik.http.routers.app2-backend.rule=Host(`api.${APP2_DOMAIN:-app2.com}`)"
+      - "traefik.http.routers.app2-backend.entrypoints=websecure"
+      - "traefik.http.routers.app2-backend.tls=true"
+      - "traefik.http.routers.app2-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.app2-backend.service=app2-backend-svc"
+      - "traefik.http.services.app2-backend-svc.loadbalancer.server.port=4000"
+
+      # Apply security middlewares
+      - "traefik.http.routers.app2-backend.middlewares=cors-headers@file,rate-limit-api@file,secure-headers@file"
+
+  # ===========================================================================
+  # DATABASE - PostgreSQL
+  # ===========================================================================
+  app2-db:
+    image: postgres:16-alpine
+    container_name: app2-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${DB_USER:-app2user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-app2password}
+      - POSTGRES_DB=${DB_NAME:-app2db}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - app2-db-data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    networks:
+      - app2-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-app2user} -d ${DB_NAME:-app2db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.50'
+
+  # ===========================================================================
+  # CACHE - Redis
+  # ===========================================================================
+  app2-redis:
+    image: redis:7-alpine
+    container_name: app2-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - app2-redis-data:/data
+    networks:
+      - app2-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+networks:
+  traefik-network:
+    external: true
+  app2-internal:
+    driver: bridge
+
+volumes:
+  app2-db-data:
+  app2-redis-data:
+

@@ -1,0 +1,64 @@
+# Portainer - Docker Management GUI
+# Run with: docker-compose -f docker-compose.portainer.yml up -d
+#
+# Access via Traefik (requires DNS):
+#   - https://portainer.yourdomain.com
+#
+# Access without DNS (uncomment ports below):
+#   - http://YOUR_SERVER_IP:9000
+
+version: "3.8"
+
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    # Uncomment to access directly without DNS (http://YOUR_SERVER_IP:9000)
+    # ports:
+    #   - "9000:9000"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer-data:/data
+    networks:
+      - traefik-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+    labels:
+      - "traefik.enable=true"
+      
+      # Portainer Web UI
+      - "traefik.http.routers.portainer.rule=Host(`${PORTAINER_HOST:-portainer.localhost}`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.portainer.service=portainer-svc"
+      - "traefik.http.services.portainer-svc.loadbalancer.server.port=9000"
+      
+      # Apply security middlewares
+      - "traefik.http.routers.portainer.middlewares=secure-headers@file"
+
+      # Portainer Edge Agent (optional)
+      # - "traefik.http.routers.portainer-edge.rule=Host(`edge.${PORTAINER_HOST:-portainer.localhost}`)"
+      # - "traefik.http.routers.portainer-edge.entrypoints=websecure"
+      # - "traefik.http.routers.portainer-edge.tls=true"
+      # - "traefik.http.routers.portainer-edge.service=portainer-edge-svc"
+      # - "traefik.http.services.portainer-edge-svc.loadbalancer.server.port=8000"
+
+networks:
+  traefik-network:
+    external: true
+
+volumes:
+  portainer-data:
+

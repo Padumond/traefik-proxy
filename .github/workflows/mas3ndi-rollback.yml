@@ -1,0 +1,121 @@
+# =============================================================================
+# Mas3ndi Rollback Pipeline
+# =============================================================================
+# Manual trigger to rollback to a previous version
+# =============================================================================
+
+name: Mas3ndi Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version/SHA to rollback to (e.g., abc1234 or v1.0.0)'
+        required: true
+        type: string
+      service:
+        description: 'Service to rollback'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - frontend
+          - backend
+      confirm:
+        description: 'Type "ROLLBACK" to confirm'
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_FRONTEND: ${{ github.repository }}/mas3ndi-frontend
+  IMAGE_NAME_BACKEND: ${{ github.repository }}/mas3ndi-backend
+
+jobs:
+  validate:
+    name: Validate Rollback
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation
+        if: ${{ github.event.inputs.confirm != 'ROLLBACK' }}
+        run: |
+          echo "❌ Rollback not confirmed. Please type 'ROLLBACK' to confirm."
+          exit 1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify image exists (Frontend)
+        if: ${{ github.event.inputs.service == 'all' || github.event.inputs.service == 'frontend' }}
+        run: |
+          docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:${{ github.event.inputs.version }}
+
+      - name: Verify image exists (Backend)
+        if: ${{ github.event.inputs.service == 'all' || github.event.inputs.service == 'backend' }}
+        run: |
+          docker manifest inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:${{ github.event.inputs.version }}
+
+  rollback:
+    name: Execute Rollback
+    runs-on: ubuntu-latest
+    needs: validate
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rollback via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}/apps/app1
+            
+            echo "🔄 Starting rollback to version: ${{ github.event.inputs.version }}"
+            
+            # Create backup before rollback
+            ./scripts/backup-db.sh daily
+            
+            # Update image tags in docker-compose override
+            if [ "${{ github.event.inputs.service }}" = "all" ] || [ "${{ github.event.inputs.service }}" = "frontend" ]; then
+              export FRONTEND_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:${{ github.event.inputs.version }}"
+              docker pull $FRONTEND_IMAGE
+            fi
+            
+            if [ "${{ github.event.inputs.service }}" = "all" ] || [ "${{ github.event.inputs.service }}" = "backend" ]; then
+              export BACKEND_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:${{ github.event.inputs.version }}"
+              docker pull $BACKEND_IMAGE
+            fi
+            
+            # Restart services with new images
+            docker compose up -d --remove-orphans
+            
+            # Wait and verify
+            sleep 15
+            
+            # Health check
+            if curl -f http://localhost:3000/health; then
+              echo "✅ Rollback successful!"
+            else
+              echo "❌ Health check failed after rollback!"
+              exit 1
+            fi
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ Rollback to ${{ github.event.inputs.version }} completed successfully!"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Rollback failed! Manual intervention may be required."
+
