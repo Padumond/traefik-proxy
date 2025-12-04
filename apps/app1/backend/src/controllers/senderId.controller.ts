@@ -3,6 +3,7 @@ import { SenderIdService } from "../services/senderId.service";
 import { ApiError } from "../middleware/error.middleware";
 import { FileUploadService } from "../services/fileUpload.service";
 import { SenderIdStatus } from "@prisma/client";
+import { logger } from "../utils/logger";
 
 export class SenderIdController {
   /**
@@ -13,33 +14,57 @@ export class SenderIdController {
     res: Response,
     next: NextFunction
   ) {
+    const startTime = Date.now();
+    const requestId = `sid-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+
+    logger.info(`[${requestId}] Sender ID request started`, {
+      userId: req.user?.id,
+      senderId: req.body?.senderId,
+      hasFile: !!req.file,
+    });
+
     try {
       const userId = req.user?.id;
       const { senderId, purpose, sampleMessage, companyName } = req.body;
       const file = req.file;
 
       if (!userId) {
+        logger.warn(`[${requestId}] Unauthorized request - no user ID`);
         throw ApiError.unauthorized("Not authenticated");
       }
 
       if (!senderId) {
+        logger.warn(`[${requestId}] Missing sender ID`);
         throw ApiError.badRequest("Sender ID is required");
       }
 
       if (!purpose) {
+        logger.warn(`[${requestId}] Missing purpose`);
         throw ApiError.badRequest("Purpose is required");
       }
 
       if (purpose.length < 50) {
+        logger.warn(
+          `[${requestId}] Purpose too short: ${purpose.length} chars`
+        );
         throw ApiError.badRequest("Purpose must be at least 50 characters");
       }
 
       // Process uploaded consent form if provided
       let consentForm;
       if (file) {
+        logger.info(`[${requestId}] Processing consent form`, {
+          filename: file.originalname,
+          size: file.size,
+          mimetype: file.mimetype,
+        });
         try {
           consentForm = FileUploadService.processUploadedFile(file);
-        } catch (error) {
+          logger.info(`[${requestId}] Consent form processed successfully`);
+        } catch (error: any) {
+          logger.error(`[${requestId}] Failed to process consent form`, error);
           // Clean up uploaded file if processing fails
           await FileUploadService.deleteFile(file.path);
           throw error;
@@ -53,6 +78,7 @@ export class SenderIdController {
           companyName || senderId
         }. This is an example of the type of messages that will be sent using this sender ID.`;
 
+      logger.info(`[${requestId}] Calling SenderIdService.requestSenderId`);
       const result = await SenderIdService.requestSenderId({
         userId,
         senderId,
@@ -62,6 +88,12 @@ export class SenderIdController {
         companyName,
       });
 
+      const duration = Date.now() - startTime;
+      logger.info(`[${requestId}] Sender ID created successfully`, {
+        senderIdId: result.id,
+        duration: `${duration}ms`,
+      });
+
       res.status(201).json({
         success: true,
         message: consentForm
@@ -69,7 +101,13 @@ export class SenderIdController {
           : "Sender ID requested successfully. Please upload a consent form to complete the approval process.",
         data: result,
       });
-    } catch (error) {
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      logger.error(`[${requestId}] Sender ID request failed`, {
+        error: error.message,
+        stack: error.stack,
+        duration: `${duration}ms`,
+      });
       next(error);
     }
   }

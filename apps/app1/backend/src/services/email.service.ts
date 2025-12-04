@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { logger } from "../utils/logger";
 
 export interface EmailOptions {
   to: string;
@@ -12,26 +13,137 @@ export interface EmailOptions {
   }>;
 }
 
+// Email service logger for detailed tracking
+const emailLogger = {
+  info: (message: string, data?: any) => {
+    const logData = {
+      service: "email",
+      timestamp: new Date().toISOString(),
+      ...data,
+    };
+    console.log(`[EMAIL SERVICE] ${message}`, JSON.stringify(logData));
+    logger.info(`[EMAIL] ${message}`);
+  },
+  error: (message: string, error?: any, data?: any) => {
+    const logData = {
+      service: "email",
+      timestamp: new Date().toISOString(),
+      error: error?.message || error,
+      stack: error?.stack,
+      ...data,
+    };
+    console.error(`[EMAIL SERVICE ERROR] ${message}`, JSON.stringify(logData));
+    logger.error(`[EMAIL] ${message}`, error);
+  },
+  debug: (message: string, data?: any) => {
+    const logData = {
+      service: "email",
+      timestamp: new Date().toISOString(),
+      ...data,
+    };
+    console.log(`[EMAIL SERVICE DEBUG] ${message}`, JSON.stringify(logData));
+  },
+};
+
 export class EmailService {
   private static transporter: nodemailer.Transporter;
+  private static isConfigured: boolean = false;
 
   static {
+    // Log SMTP configuration (without sensitive data)
+    const smtpConfig = {
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: parseInt(process.env.SMTP_PORT || "587") === 465,
+      hasUser: !!process.env.SMTP_USER,
+      hasPass: !!process.env.SMTP_PASS,
+      fromEmail: process.env.FROM_EMAIL || "noreply@mas3ndi.com",
+      adminEmails: process.env.ADMIN_NOTIFICATION_EMAILS || "not configured",
+    };
+
+    emailLogger.info("Initializing SMTP transporter", smtpConfig);
+
     // Initialize transporter
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || "smtp.gmail.com",
       port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: false, // true for 465, false for other ports
+      secure: parseInt(process.env.SMTP_PORT || "587") === 465, // true for 465, false for other ports
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
     });
+
+    // Check if SMTP is properly configured
+    this.isConfigured = !!(
+      process.env.SMTP_HOST &&
+      process.env.SMTP_USER &&
+      process.env.SMTP_PASS
+    );
+
+    if (!this.isConfigured) {
+      emailLogger.error(
+        "SMTP not fully configured - emails will not be sent",
+        null,
+        {
+          missingVars: {
+            SMTP_HOST: !process.env.SMTP_HOST,
+            SMTP_USER: !process.env.SMTP_USER,
+            SMTP_PASS: !process.env.SMTP_PASS,
+          },
+        }
+      );
+    } else {
+      emailLogger.info("SMTP transporter initialized successfully");
+    }
+  }
+
+  /**
+   * Verify SMTP connection
+   */
+  static async verifyConnection(): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      emailLogger.info("Verifying SMTP connection...");
+      await this.transporter.verify();
+      emailLogger.info("SMTP connection verified successfully");
+      return { success: true, message: "SMTP connection is working" };
+    } catch (error: any) {
+      emailLogger.error("SMTP connection verification failed", error);
+      return {
+        success: false,
+        message: error.message || "SMTP connection failed",
+      };
+    }
   }
 
   /**
    * Send an email
    */
-  static async sendEmail(options: EmailOptions): Promise<void> {
+  static async sendEmail(
+    options: EmailOptions
+  ): Promise<{ success: boolean; error?: string }> {
+    const startTime = Date.now();
+
+    emailLogger.info("Attempting to send email", {
+      to: options.to,
+      subject: options.subject,
+      hasAttachments: !!options.attachments?.length,
+      attachmentCount: options.attachments?.length || 0,
+    });
+
+    // Check if SMTP is configured
+    if (!this.isConfigured) {
+      const errorMsg = "SMTP not configured - email not sent";
+      emailLogger.error(errorMsg, null, {
+        to: options.to,
+        subject: options.subject,
+      });
+      return { success: false, error: errorMsg };
+    }
+
     try {
       const mailOptions = {
         from: process.env.FROM_EMAIL || "noreply@mas3ndi.com",
@@ -42,12 +154,30 @@ export class EmailService {
         attachments: options.attachments,
       };
 
-      await this.transporter.sendMail(mailOptions);
-      console.log(`Email sent successfully to ${options.to}`);
-    } catch (error) {
-      console.error("Failed to send email:", error);
-      // Don't throw error to prevent registration from failing due to email issues
-      // In production, you might want to queue failed emails for retry
+      emailLogger.debug("Mail options prepared", {
+        from: mailOptions.from,
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+      });
+
+      const result = await this.transporter.sendMail(mailOptions);
+
+      emailLogger.info("Email sent successfully", {
+        to: options.to,
+        subject: options.subject,
+        messageId: result.messageId,
+        response: result.response,
+        duration: `${Date.now() - startTime}ms`,
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      emailLogger.error("Failed to send email", error, {
+        to: options.to,
+        subject: options.subject,
+        duration: `${Date.now() - startTime}ms`,
+      });
+      return { success: false, error: error.message };
     }
   }
 
@@ -241,10 +371,27 @@ export class EmailService {
       }/admin/sender-ids
     `;
 
+    // Log the notification attempt
+    emailLogger.info("Sending sender ID approval notification", {
+      senderId,
+      clientName,
+      clientEmail,
+      adminEmails,
+      hasConsentForm: !!consentFormPath,
+      consentFormName: consentFormOriginalName,
+    });
+
     // Send to all admin emails
+    let successCount = 0;
+    let failCount = 0;
+
     for (const adminEmail of adminEmails) {
       try {
-        await this.sendEmail({
+        emailLogger.debug(
+          `Sending notification to admin: ${adminEmail.trim()}`
+        );
+
+        const result = await this.sendEmail({
           to: adminEmail.trim(),
           subject: `New Sender ID Request: ${senderId} - ${clientName}`,
           html,
@@ -257,9 +404,34 @@ export class EmailService {
             },
           ],
         });
-      } catch (error) {
-        console.error(`Failed to send notification to ${adminEmail}:`, error);
+
+        if (result.success) {
+          successCount++;
+          emailLogger.info(
+            `Notification sent successfully to ${adminEmail.trim()}`
+          );
+        } else {
+          failCount++;
+          emailLogger.error(
+            `Failed to send notification to ${adminEmail.trim()}`,
+            null,
+            { error: result.error }
+          );
+        }
+      } catch (error: any) {
+        failCount++;
+        emailLogger.error(
+          `Exception sending notification to ${adminEmail}`,
+          error
+        );
       }
     }
+
+    emailLogger.info("Sender ID notification process completed", {
+      senderId,
+      totalAdmins: adminEmails.length,
+      successCount,
+      failCount,
+    });
   }
 }

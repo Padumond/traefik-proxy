@@ -197,22 +197,59 @@ export interface ApiError {
   errors?: Record<string, string[]>;
 }
 
-// Helper function to handle API responses
+// Debug logging utility (only logs in development or when explicitly enabled)
+const DEBUG_MODE =
+  process.env.NODE_ENV === "development" ||
+  (typeof window !== "undefined" &&
+    localStorage.getItem("mas3ndi_debug") === "true");
+
+export const apiDebugLog = (message: string, data?: any) => {
+  if (
+    DEBUG_MODE ||
+    (typeof window !== "undefined" &&
+      localStorage.getItem("mas3ndi_debug") === "true")
+  ) {
+    console.log(
+      `[MAS3NDI API] ${new Date().toISOString()} - ${message}`,
+      data || ""
+    );
+  }
+};
+
+export const apiErrorLog = (message: string, error?: any) => {
+  // Always log errors
+  console.error(
+    `[MAS3NDI API ERROR] ${new Date().toISOString()} - ${message}`,
+    error || ""
+  );
+};
+
+// Helper function to handle API responses with logging
 export const handleApiResponse = async <T>(response: Response): Promise<T> => {
+  const url = response.url;
+  const status = response.status;
+
+  apiDebugLog(`Response received: ${status} from ${url}`);
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({
       success: false,
       message: "Network error occurred",
     }));
+
+    apiErrorLog(`API Error: ${status} from ${url}`, errorData);
+
     throw new Error(
       errorData.message || `HTTP ${response.status}: ${response.statusText}`
     );
   }
 
   const data = await response.json();
+  apiDebugLog(`Response data from ${url}:`, data);
 
   // Handle backend response format
   if (data.success === false) {
+    apiErrorLog(`API returned success=false from ${url}`, data);
     throw new Error(data.message || "API request failed");
   }
 

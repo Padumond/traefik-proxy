@@ -25,6 +25,8 @@ import {
   buildApiUrl,
   createApiConfigMultipart,
   handleApiResponse,
+  apiDebugLog,
+  apiErrorLog,
 } from "@/lib/api-config";
 
 // Enhanced sender ID type with manual approval workflow fields
@@ -149,6 +151,12 @@ export default function EnhancedSenderIDsPage() {
   }, [fetchError, senderIdsResponse, senderIds]);
 
   const createSenderId = async () => {
+    const startTime = Date.now();
+    apiDebugLog("Starting sender ID creation", {
+      formData,
+      hasFile: !!selectedFile,
+    });
+
     try {
       setIsSubmitting(true);
       setError("");
@@ -172,15 +180,34 @@ export default function EnhancedSenderIDsPage() {
       // Add consent form if selected
       if (selectedFile) {
         formDataToSend.append("consentForm", selectedFile);
+        apiDebugLog("Added consent form to request", {
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          fileType: selectedFile.type,
+        });
       }
 
-      const response = await fetch(buildApiUrl("/sender-ids"), {
+      const apiUrl = buildApiUrl("/sender-ids");
+      apiDebugLog("Making API request to", apiUrl);
+
+      const response = await fetch(apiUrl, {
         method: "POST",
         ...createApiConfigMultipart(),
         body: formDataToSend,
       });
 
+      apiDebugLog("Response received", {
+        status: response.status,
+        statusText: response.statusText,
+        duration: `${Date.now() - startTime}ms`,
+      });
+
       const data = await handleApiResponse(response);
+
+      apiDebugLog("Sender ID created successfully", {
+        data,
+        totalDuration: `${Date.now() - startTime}ms`,
+      });
 
       toast.success(
         selectedFile
@@ -199,11 +226,26 @@ export default function EnhancedSenderIDsPage() {
       });
       setSelectedFile(null);
       setFileError("");
+
+      apiDebugLog("Refreshing sender IDs list...");
       refetch(); // Refresh the list using Redux
     } catch (error: any) {
-      setError(error.message);
-      toast.error(error.message);
+      apiErrorLog("Failed to create sender ID", {
+        error: error.message,
+        stack: error.stack,
+        duration: `${Date.now() - startTime}ms`,
+      });
+      setError(
+        error.message || "An unexpected error occurred. Please try again."
+      );
+      toast.error(
+        error.message || "Failed to create sender ID. Please try again."
+      );
     } finally {
+      apiDebugLog("Sender ID creation completed", {
+        success: !error,
+        duration: `${Date.now() - startTime}ms`,
+      });
       setIsSubmitting(false);
     }
   };
