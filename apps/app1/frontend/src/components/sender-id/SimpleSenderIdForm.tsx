@@ -2,7 +2,11 @@
 
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { buildApiUrl, createApiConfig, handleApiResponse } from "@/lib/api-config";
+import {
+  buildApiUrl,
+  createApiConfig,
+  handleApiResponse,
+} from "@/lib/api-config";
 
 interface SimpleSenderIdFormProps {
   onSuccess?: () => void;
@@ -20,7 +24,10 @@ interface FormErrors {
   [key: string]: string;
 }
 
-export default function SimpleSenderIdForm({ onSuccess, onCancel }: SimpleSenderIdFormProps) {
+export default function SimpleSenderIdForm({
+  onSuccess,
+  onCancel,
+}: SimpleSenderIdFormProps) {
   const [formData, setFormData] = useState<FormData>({
     senderId: "",
     category: "personal",
@@ -32,6 +39,69 @@ export default function SimpleSenderIdForm({ onSuccess, onCancel }: SimpleSender
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // Restricted keywords/abbreviations that identify other institutions
+  const restrictedKeywords = [
+    "BANK",
+    "GOVT",
+    "GOV",
+    "GHS",
+    "NHIS",
+    "GRA",
+    "ECG",
+    "GWCL",
+    "NCA",
+    "BOG",
+    "MTN",
+    "VODAFONE",
+    "TIGO",
+    "AIRTEL",
+    "GLO",
+    "POLICE",
+    "ARMY",
+    "NAVY",
+    "CUSTOMS",
+    "IMMIGRATION",
+    "PARLIAMENT",
+    "JUDICIARY",
+    "CHRAJ",
+    "EOCO",
+    "BNI",
+    "FDA",
+    "EPA",
+    "COCOBOD",
+    "SSNIT",
+    "NHIA",
+    "NLA",
+    "GPHA",
+    "GCAA",
+    "DVLA",
+    "GNPC",
+    "VRA",
+    "GRIDCO",
+    "BOST",
+    "TOR",
+    "GACL",
+    "GSA",
+    "CEPS",
+    "IRS",
+  ];
+
+  // Check if sender ID contains restricted keywords
+  const containsRestrictedKeyword = (senderId: string): string | null => {
+    const upperSenderId = senderId.toUpperCase();
+    for (const keyword of restrictedKeywords) {
+      if (upperSenderId.includes(keyword) || upperSenderId === keyword) {
+        return keyword;
+      }
+    }
+    return null;
+  };
+
+  // Check if sender ID is purely numeric
+  const isNumericOnly = (senderId: string): boolean => {
+    return /^\d+$/.test(senderId);
+  };
+
   // Form validation
   const validateForm = () => {
     const errors: FormErrors = {};
@@ -40,11 +110,19 @@ export default function SimpleSenderIdForm({ onSuccess, onCancel }: SimpleSender
     if (!formData.senderId.trim()) {
       errors.senderId = "Sender ID is required";
     } else if (!/^[A-Z0-9]+$/.test(formData.senderId)) {
-      errors.senderId = "Sender ID must contain only uppercase letters and numbers";
+      errors.senderId =
+        "Sender ID must contain only uppercase letters and numbers";
     } else if (formData.senderId.length < 3) {
-      errors.senderId = "Sender ID must be at least 3 characters";
+      errors.senderId = "Sender ID should not be less than 3 characters";
     } else if (formData.senderId.length > 11) {
-      errors.senderId = "Sender ID must be no more than 11 characters";
+      errors.senderId = "Sender ID should not exceed 11 characters";
+    } else if (isNumericOnly(formData.senderId)) {
+      errors.senderId = "Sender ID should not be purely numeric";
+    } else {
+      const restrictedKeyword = containsRestrictedKeyword(formData.senderId);
+      if (restrictedKeyword) {
+        errors.senderId = `Avoid using keywords or abbreviations that identify other institutions (detected: ${restrictedKeyword})`;
+      }
     }
 
     // Company name validation (if category is company)
@@ -82,15 +160,20 @@ export default function SimpleSenderIdForm({ onSuccess, onCancel }: SimpleSender
         body: JSON.stringify({
           senderId: formData.senderId,
           purpose: formData.purpose,
-          sampleMessage: `Sample message from ${formData.category === "company" ? formData.companyName : "user"}`,
-          companyName: formData.category === "company" ? formData.companyName : undefined,
+          sampleMessage: `Sample message from ${
+            formData.category === "company" ? formData.companyName : "user"
+          }`,
+          companyName:
+            formData.category === "company" ? formData.companyName : undefined,
         }),
       });
 
       await handleApiResponse(response);
 
-      toast.success("Sender ID requested successfully! It will be reviewed by administrators.");
-      
+      toast.success(
+        "Sender ID requested successfully! It will be reviewed by administrators."
+      );
+
       // Reset form
       setFormData({
         senderId: "",
@@ -115,7 +198,8 @@ export default function SimpleSenderIdForm({ onSuccess, onCancel }: SimpleSender
           Request New Sender ID
         </h3>
         <p className="text-sm text-gray-600">
-          Fill out the form below to request a new sender ID. All requests are manually reviewed.
+          Fill out the form below to request a new sender ID. All requests are
+          manually reviewed.
         </p>
       </div>
 
@@ -123,8 +207,16 @@ export default function SimpleSenderIdForm({ onSuccess, onCancel }: SimpleSender
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <div className="ml-3">
@@ -137,7 +229,10 @@ export default function SimpleSenderIdForm({ onSuccess, onCancel }: SimpleSender
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Sender ID */}
         <div>
-          <label htmlFor="senderId" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="senderId"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Sender ID <span className="text-red-500">*</span>
           </label>
           <input
@@ -170,11 +265,51 @@ export default function SimpleSenderIdForm({ onSuccess, onCancel }: SimpleSender
               {formData.senderId.length}/11 characters
             </span>
           </div>
+          {/* Validation hints */}
+          <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+            <p className="text-xs font-medium text-amber-800 mb-1">
+              Sender ID Requirements:
+            </p>
+            <ul className="text-xs text-amber-700 space-y-0.5 list-disc list-inside">
+              <li
+                className={
+                  formData.senderId.length >= 3 &&
+                  formData.senderId.length <= 11
+                    ? "text-green-600"
+                    : ""
+                }
+              >
+                Should be between 3-11 characters
+              </li>
+              <li
+                className={
+                  formData.senderId && !isNumericOnly(formData.senderId)
+                    ? "text-green-600"
+                    : ""
+                }
+              >
+                Should not be purely numeric
+              </li>
+              <li
+                className={
+                  formData.senderId &&
+                  !containsRestrictedKeyword(formData.senderId)
+                    ? "text-green-600"
+                    : ""
+                }
+              >
+                Avoid keywords that identify other institutions
+              </li>
+            </ul>
+          </div>
         </div>
 
         {/* Category */}
         <div>
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="category"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Category <span className="text-red-500">*</span>
           </label>
           <select
@@ -184,7 +319,8 @@ export default function SimpleSenderIdForm({ onSuccess, onCancel }: SimpleSender
               setFormData({
                 ...formData,
                 category: e.target.value as "personal" | "company",
-                companyName: e.target.value === "personal" ? "" : formData.companyName,
+                companyName:
+                  e.target.value === "personal" ? "" : formData.companyName,
               });
               if (fieldErrors.companyName) {
                 setFieldErrors({ ...fieldErrors, companyName: "" });
@@ -201,7 +337,10 @@ export default function SimpleSenderIdForm({ onSuccess, onCancel }: SimpleSender
         {/* Company Name (conditional) */}
         {formData.category === "company" && (
           <div>
-            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="companyName"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Company Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -226,14 +365,19 @@ export default function SimpleSenderIdForm({ onSuccess, onCancel }: SimpleSender
               required
             />
             {fieldErrors.companyName && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.companyName}</p>
+              <p className="mt-1 text-sm text-red-600">
+                {fieldErrors.companyName}
+              </p>
             )}
           </div>
         )}
 
         {/* Purpose */}
         <div>
-          <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="purpose"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Purpose Description <span className="text-red-500">*</span>
           </label>
           <textarea
@@ -261,9 +405,11 @@ export default function SimpleSenderIdForm({ onSuccess, onCancel }: SimpleSender
             {fieldErrors.purpose && (
               <p className="text-sm text-red-600">{fieldErrors.purpose}</p>
             )}
-            <span className={`text-xs ml-auto ${
-              formData.purpose.length < 50 ? "text-red-500" : "text-gray-500"
-            }`}>
+            <span
+              className={`text-xs ml-auto ${
+                formData.purpose.length < 50 ? "text-red-500" : "text-gray-500"
+              }`}
+            >
               {formData.purpose.length}/50 minimum characters
             </span>
           </div>

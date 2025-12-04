@@ -34,10 +34,11 @@ export class SenderIdService {
     companyName,
   }: CreateSenderIdParams) {
     try {
-      // Validate sender ID format
-      if (!this.isValidSenderId(senderId)) {
+      // Comprehensive sender ID validation
+      const validation = this.validateSenderIdFormat(senderId);
+      if (!validation.valid) {
         throw ApiError.badRequest(
-          "Invalid sender ID format. Sender ID must be alphanumeric and between 3-11 characters"
+          validation.error || "Invalid sender ID format"
         );
       }
 
@@ -328,10 +329,11 @@ export class SenderIdService {
     sampleMessage,
   }: CreateSenderIdParams) {
     try {
-      // Validate sender ID format
-      if (!this.isValidSenderId(senderId)) {
+      // Comprehensive sender ID validation
+      const validation = this.validateSenderIdFormat(senderId);
+      if (!validation.valid) {
         throw ApiError.badRequest(
-          "Invalid sender ID format. Sender ID must be alphanumeric and between 3-11 characters"
+          validation.error || "Invalid sender ID format"
         );
       }
 
@@ -592,6 +594,73 @@ export class SenderIdService {
     }
   }
 
+  // Restricted keywords/abbreviations that identify other institutions
+  private static restrictedKeywords = [
+    "BANK",
+    "GOVT",
+    "GOV",
+    "GHS",
+    "NHIS",
+    "GRA",
+    "ECG",
+    "GWCL",
+    "NCA",
+    "BOG",
+    "MTN",
+    "VODAFONE",
+    "TIGO",
+    "AIRTEL",
+    "GLO",
+    "POLICE",
+    "ARMY",
+    "NAVY",
+    "CUSTOMS",
+    "IMMIGRATION",
+    "PARLIAMENT",
+    "JUDICIARY",
+    "CHRAJ",
+    "EOCO",
+    "BNI",
+    "FDA",
+    "EPA",
+    "COCOBOD",
+    "SSNIT",
+    "NHIA",
+    "NLA",
+    "GPHA",
+    "GCAA",
+    "DVLA",
+    "GNPC",
+    "VRA",
+    "GRIDCO",
+    "BOST",
+    "TOR",
+    "GACL",
+    "GSA",
+    "CEPS",
+    "IRS",
+  ];
+
+  /**
+   * Check if sender ID contains restricted keywords
+   */
+  private static containsRestrictedKeyword(senderId: string): string | null {
+    const upperSenderId = senderId.toUpperCase();
+    for (const keyword of this.restrictedKeywords) {
+      if (upperSenderId.includes(keyword) || upperSenderId === keyword) {
+        return keyword;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Check if sender ID is purely numeric
+   */
+  private static isNumericOnly(senderId: string): boolean {
+    return /^\d+$/.test(senderId);
+  }
+
   /**
    * Validate sender ID format
    * Sender ID must be alphanumeric and between 3-11 characters
@@ -599,5 +668,57 @@ export class SenderIdService {
   private static isValidSenderId(senderId: string): boolean {
     const senderIdRegex = /^[a-zA-Z0-9]{3,11}$/;
     return senderIdRegex.test(senderId);
+  }
+
+  /**
+   * Comprehensive sender ID validation with detailed error messages
+   */
+  static validateSenderIdFormat(senderId: string): {
+    valid: boolean;
+    error?: string;
+  } {
+    // Check basic format
+    if (!senderId || !senderId.trim()) {
+      return { valid: false, error: "Sender ID is required" };
+    }
+
+    // Check alphanumeric
+    if (!/^[a-zA-Z0-9]+$/.test(senderId)) {
+      return {
+        valid: false,
+        error: "Sender ID must contain only letters and numbers",
+      };
+    }
+
+    // Check length
+    if (senderId.length < 3) {
+      return {
+        valid: false,
+        error: "Sender ID should not be less than 3 characters",
+      };
+    }
+
+    if (senderId.length > 11) {
+      return {
+        valid: false,
+        error: "Sender ID should not exceed 11 characters",
+      };
+    }
+
+    // Check if purely numeric
+    if (this.isNumericOnly(senderId)) {
+      return { valid: false, error: "Sender ID should not be purely numeric" };
+    }
+
+    // Check for restricted keywords
+    const restrictedKeyword = this.containsRestrictedKeyword(senderId);
+    if (restrictedKeyword) {
+      return {
+        valid: false,
+        error: `Avoid using keywords or abbreviations that identify other institutions (detected: ${restrictedKeyword})`,
+      };
+    }
+
+    return { valid: true };
   }
 }

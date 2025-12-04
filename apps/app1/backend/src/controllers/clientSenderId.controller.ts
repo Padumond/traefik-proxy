@@ -227,6 +227,73 @@ export class ClientSenderIdController {
     }
   }
 
+  // Restricted keywords/abbreviations that identify other institutions
+  private static restrictedKeywords = [
+    "BANK",
+    "GOVT",
+    "GOV",
+    "GHS",
+    "NHIS",
+    "GRA",
+    "ECG",
+    "GWCL",
+    "NCA",
+    "BOG",
+    "MTN",
+    "VODAFONE",
+    "TIGO",
+    "AIRTEL",
+    "GLO",
+    "POLICE",
+    "ARMY",
+    "NAVY",
+    "CUSTOMS",
+    "IMMIGRATION",
+    "PARLIAMENT",
+    "JUDICIARY",
+    "CHRAJ",
+    "EOCO",
+    "BNI",
+    "FDA",
+    "EPA",
+    "COCOBOD",
+    "SSNIT",
+    "NHIA",
+    "NLA",
+    "GPHA",
+    "GCAA",
+    "DVLA",
+    "GNPC",
+    "VRA",
+    "GRIDCO",
+    "BOST",
+    "TOR",
+    "GACL",
+    "GSA",
+    "CEPS",
+    "IRS",
+  ];
+
+  /**
+   * Check if sender ID contains restricted keywords
+   */
+  private static containsRestrictedKeyword(senderId: string): string | null {
+    const upperSenderId = senderId.toUpperCase();
+    for (const keyword of this.restrictedKeywords) {
+      if (upperSenderId.includes(keyword) || upperSenderId === keyword) {
+        return keyword;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Check if sender ID is purely numeric
+   */
+  private static isNumericOnly(senderId: string): boolean {
+    return /^\d+$/.test(senderId);
+  }
+
   /**
    * Validate sender ID format
    */
@@ -248,18 +315,35 @@ export class ClientSenderIdController {
         });
       }
 
-      const isValid = /^[A-Za-z0-9]{3,11}$/.test(sender_id);
       const issues = [];
 
+      // Check length
       if (sender_id.length < 3) {
-        issues.push("Must be at least 3 characters");
+        issues.push("Sender ID should not be less than 3 characters");
       }
       if (sender_id.length > 11) {
-        issues.push("Must be no more than 11 characters");
+        issues.push("Sender ID should not exceed 11 characters");
       }
+
+      // Check alphanumeric
       if (!/^[A-Za-z0-9]+$/.test(sender_id)) {
-        issues.push("Must contain only letters and numbers");
+        issues.push("Sender ID must contain only letters and numbers");
       }
+
+      // Check if purely numeric
+      if (this.isNumericOnly(sender_id)) {
+        issues.push("Sender ID should not be purely numeric");
+      }
+
+      // Check for restricted keywords
+      const restrictedKeyword = this.containsRestrictedKeyword(sender_id);
+      if (restrictedKeyword) {
+        issues.push(
+          `Avoid using keywords or abbreviations that identify other institutions (detected: ${restrictedKeyword})`
+        );
+      }
+
+      const isValid = issues.length === 0;
 
       res.status(200).json({
         success: true,
@@ -272,6 +356,8 @@ export class ClientSenderIdController {
             : [
                 "Use 3-11 alphanumeric characters",
                 "Avoid special characters and spaces",
+                "Sender ID should not be purely numeric",
+                "Avoid keywords that identify other institutions",
                 "Use your brand name or service name",
               ],
         },

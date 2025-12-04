@@ -363,6 +363,69 @@ export default function EnhancedSenderIDsPage() {
     toast.success("Sender IDs refreshed");
   };
 
+  // Restricted keywords/abbreviations that identify other institutions
+  const restrictedKeywords = [
+    "BANK",
+    "GOVT",
+    "GOV",
+    "GHS",
+    "NHIS",
+    "GRA",
+    "ECG",
+    "GWCL",
+    "NCA",
+    "BOG",
+    "MTN",
+    "VODAFONE",
+    "TIGO",
+    "AIRTEL",
+    "GLO",
+    "POLICE",
+    "ARMY",
+    "NAVY",
+    "CUSTOMS",
+    "IMMIGRATION",
+    "PARLIAMENT",
+    "JUDICIARY",
+    "CHRAJ",
+    "EOCO",
+    "BNI",
+    "FDA",
+    "EPA",
+    "COCOBOD",
+    "SSNIT",
+    "NHIA",
+    "NLA",
+    "GPHA",
+    "GCAA",
+    "DVLA",
+    "GNPC",
+    "VRA",
+    "GRIDCO",
+    "BOST",
+    "TOR",
+    "GACL",
+    "GSA",
+    "CEPS",
+    "IRS",
+  ];
+
+  // Check if sender ID contains restricted keywords
+  const containsRestrictedKeyword = (senderId: string): string | null => {
+    const upperSenderId = senderId.toUpperCase();
+    for (const keyword of restrictedKeywords) {
+      if (upperSenderId.includes(keyword) || upperSenderId === keyword) {
+        return keyword;
+      }
+    }
+    return null;
+  };
+
+  // Check if sender ID is purely numeric
+  const isNumericOnly = (senderId: string): boolean => {
+    return /^\d+$/.test(senderId);
+  };
+
   // Form validation
   const validateForm = () => {
     const errors: { [key: string]: string } = {};
@@ -372,7 +435,16 @@ export default function EnhancedSenderIDsPage() {
     } else if (!/^[A-Z0-9]+$/.test(formData.senderId)) {
       errors.senderId = "Sender ID must contain only letters and numbers";
     } else if (formData.senderId.length < 3) {
-      errors.senderId = "Sender ID must be at least 3 characters";
+      errors.senderId = "Sender ID should not be less than 3 characters";
+    } else if (formData.senderId.length > 11) {
+      errors.senderId = "Sender ID should not exceed 11 characters";
+    } else if (isNumericOnly(formData.senderId)) {
+      errors.senderId = "Sender ID should not be purely numeric";
+    } else {
+      const restrictedKeyword = containsRestrictedKeyword(formData.senderId);
+      if (restrictedKeyword) {
+        errors.senderId = `Avoid using keywords or abbreviations that identify other institutions (detected: ${restrictedKeyword})`;
+      }
     }
 
     if (!formData.purpose.trim()) {
